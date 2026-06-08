@@ -14,6 +14,7 @@ from sovereign_rag.config import (
     LLMProvider,
     RerankerProvider,
     Settings,
+    SparseProvider,
     VectorProvider,
     get_settings,
 )
@@ -63,16 +64,32 @@ def build_embedder(settings: Settings) -> EmbeddingPort:
     return FakeEmbedding(dim=settings.embedding_dim)
 
 
-def build_store(settings: Settings, embedder: EmbeddingPort) -> VectorStorePort:
+def build_stores(
+    settings: Settings,
+    embedder: EmbeddingPort,
+) -> tuple[VectorStorePort, LexicalIndexPort]:
     if settings.vector_provider is VectorProvider.QDRANT:
+        if settings.sparse_provider is SparseProvider.FASTEMBED:
+            from sovereign_rag.adapters.qdrant_hybrid import QdrantHybridStore
+            from sovereign_rag.adapters.sparse_embeddings import FastEmbedSparse
+
+            hybrid = QdrantHybridStore(
+                url=settings.qdrant_url,
+                collection=settings.qdrant_collection,
+                dim=embedder.dim,
+                sparse=FastEmbedSparse(model=settings.sparse_model),
+            )
+            return hybrid, hybrid.lexical()
+
         from sovereign_rag.adapters.qdrant_store import QdrantStore
 
-        return QdrantStore(
+        store = QdrantStore(
             url=settings.qdrant_url,
             collection=settings.qdrant_collection,
             dim=embedder.dim,
         )
-    return InMemoryVectorStore()
+        return store, BM25Index()
+    return InMemoryVectorStore(), BM25Index()
 
 
 def build_llm(settings: Settings) -> LLMPort:
@@ -113,8 +130,7 @@ def build_tracer(settings: Settings) -> Tracer:
 
 def build_container(settings: Settings) -> Container:
     embedder = build_embedder(settings)
-    store = build_store(settings, embedder)
-    lexical: LexicalIndexPort = BM25Index()
+    store, lexical = build_stores(settings, embedder)
     reranker = build_reranker(settings)
     principals: PrincipalResolverPort = StaticPrincipalResolver(settings.api_keys)
     guardrail: GuardrailPort = RegexGuardrail(pii_policy=settings.pii_policy)

@@ -2,11 +2,16 @@ from __future__ import annotations
 
 import uuid
 
-from sovereign_rag.domain.models import Chunk, EmbeddedChunk, ScoredChunk
+from sovereign_rag.adapters.qdrant_common import (
+    build_filter,
+    chunk_payload,
+    scored_from_hit,
+)
+from sovereign_rag.domain.models import EmbeddedChunk, ScoredChunk
 
 
 class QdrantStore:
-    """Self-hostable Qdrant vector store with region-aware filtering."""
+    """Self-hostable Qdrant dense vector store with tenant + region filtering."""
 
     def __init__(self, url: str, collection: str, dim: int) -> None:
         from qdrant_client import QdrantClient
@@ -27,7 +32,7 @@ class QdrantStore:
             PointStruct(
                 id=str(uuid.uuid5(uuid.NAMESPACE_URL, item.chunk.id)),
                 vector=item.embedding,
-                payload=self._payload(item.chunk),
+                payload=chunk_payload(item.chunk),
             )
             for item in items
         ]
@@ -40,20 +45,14 @@ class QdrantStore:
         tenant_id: str,
         regions: list[str] | None = None,
     ) -> list[ScoredChunk]:
-        from qdrant_client.models import FieldCondition, Filter, MatchAny, MatchValue
-
-        must: list[object] = [FieldCondition(key="tenant_id", match=MatchValue(value=tenant_id))]
-        if regions is not None:
-            must.append(FieldCondition(key="region", match=MatchAny(any=regions)))
-        query_filter = Filter(must=must)
         hits = self._client.search(
             collection_name=self._collection,
             query_vector=embedding,
             limit=top_k,
-            query_filter=query_filter,
+            query_filter=build_filter(tenant_id, regions),
             with_payload=True,
         )
-        return [self._to_scored(hit) for hit in hits]
+        return [scored_from_hit(hit) for hit in hits]
 
     def delete_by_source(self, source: str) -> int:
         from qdrant_client.models import FieldCondition, Filter, MatchValue
@@ -65,25 +64,3 @@ class QdrantStore:
 
     def count(self) -> int:
         return int(self._client.count(collection_name=self._collection).count)
-
-    @staticmethod
-    def _payload(chunk: Chunk) -> dict[str, object]:
-        data = chunk.model_dump()
-        data.pop("id", None)
-        data["chunk_id"] = chunk.id
-        return data
-
-    @staticmethod
-    def _to_scored(hit: object) -> ScoredChunk:
-        payload = dict(getattr(hit, "payload", {}) or {})
-        chunk = Chunk(
-            id=str(payload.get("chunk_id", "")),
-            document_id=str(payload.get("document_id", "")),
-            text=str(payload.get("text", "")),
-            source=str(payload.get("source", "")),
-            region=str(payload.get("region", "")),
-            tenant_id=str(payload.get("tenant_id", "default")),
-            position=int(payload.get("position", 0)),
-            metadata={k: str(v) for k, v in dict(payload.get("metadata", {})).items()},
-        )
-        return ScoredChunk(chunk=chunk, score=float(getattr(hit, "score", 0.0)))

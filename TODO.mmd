@@ -51,12 +51,17 @@ graph TD
         H3[API-key auth + principal resolver]:::done
     end
 
+    subgraph P8[Phase 8 - Persistent hybrid]
+        I1[Sparse embedding port + fastembed BM25]:::done
+        I2[Qdrant named dense + sparse vectors]:::done
+        I3[Qdrant sparse lexical view]:::done
+    end
+
     subgraph BACKLOG[Backlog - future iterations]
         F1[Fine-tuning provider - Project B]:::todo
         F4[Helm chart OVHcloud / Outscale]:::todo
         F5[PII reversible vault]:::todo
-        F6[Qdrant native sparse vectors for hybrid]:::todo
         F7[JWT / OIDC auth provider]:::todo
     end
 
-    P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7 --> BACKLOG
+    P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7 --> P8 --> BACKLOG

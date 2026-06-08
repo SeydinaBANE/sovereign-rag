@@ -4,7 +4,7 @@ import hashlib
 import math
 import re
 
-from sovereign_rag.domain.models import EmbeddedChunk, ScoredChunk
+from sovereign_rag.domain.models import EmbeddedChunk, ScoredChunk, SparseVector
 from sovereign_rag.ports.llm import LLMResponse
 
 _WORD = re.compile(r"\w+", re.UNICODE)
@@ -56,6 +56,24 @@ class FakeEmbedding:
         if norm == 0.0:
             return vector
         return [value / norm for value in vector]
+
+
+class FakeSparseEmbedding:
+    """Deterministic hashing sparse encoder; overlap tracks shared terms."""
+
+    def __init__(self, dim: int = 4096) -> None:
+        self._dim = dim
+
+    def encode(self, texts: list[str]) -> list[SparseVector]:
+        return [self._encode_one(text) for text in texts]
+
+    def _encode_one(self, text: str) -> SparseVector:
+        counts: dict[int, float] = {}
+        for token in _WORD.findall(text.lower()):
+            index = int(hashlib.md5(token.encode("utf-8")).hexdigest(), 16) % self._dim
+            counts[index] = counts.get(index, 0.0) + 1.0
+        indices = sorted(counts)
+        return SparseVector(indices=indices, values=[counts[index] for index in indices])
 
 
 class InMemoryVectorStore:

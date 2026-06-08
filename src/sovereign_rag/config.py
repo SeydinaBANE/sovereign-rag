@@ -32,6 +32,11 @@ class VectorProvider(StrEnum):
     QDRANT = "qdrant"
 
 
+class SparseProvider(StrEnum):
+    NONE = "none"
+    FASTEMBED = "fastembed"
+
+
 class RetrievalMode(StrEnum):
     VECTOR = "vector"
     HYBRID = "hybrid"
@@ -70,6 +75,8 @@ class Settings(BaseSettings):
     vector_provider: VectorProvider = VectorProvider.MEMORY
     qdrant_url: str = "http://localhost:6333"
     qdrant_collection: str = "sovereign_rag"
+    sparse_provider: SparseProvider = SparseProvider.FASTEMBED
+    sparse_model: str = "Qdrant/bm25"
 
     chunk_size: int = 800
     chunk_overlap: int = 120

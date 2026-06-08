@@ -52,6 +52,11 @@ class EmbeddedChunk(BaseModel):
     embedding: list[float]
 
 
+class SparseVector(BaseModel):
+    indices: list[int]
+    values: list[float]
+
+
 class ScoredChunk(BaseModel):
     chunk: Chunk
     score: float
