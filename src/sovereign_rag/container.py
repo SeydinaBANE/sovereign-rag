@@ -3,12 +3,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from functools import lru_cache
 
+from sovereign_rag.adapters.bm25 import BM25Index
 from sovereign_rag.adapters.fakes import FakeEmbedding, FakeLLM, InMemoryVectorStore
+from sovereign_rag.adapters.lexical_reranker import LexicalReranker
 from sovereign_rag.adapters.regex_guardrail import RegexGuardrail
 from sovereign_rag.compliance.audit import FileAuditLog
 from sovereign_rag.config import (
     EmbeddingProvider,
     LLMProvider,
+    RerankerProvider,
     Settings,
     VectorProvider,
     get_settings,
@@ -17,7 +20,9 @@ from sovereign_rag.observability.tracing import Tracer
 from sovereign_rag.ports.audit import AuditPort
 from sovereign_rag.ports.embeddings import EmbeddingPort
 from sovereign_rag.ports.guardrail import GuardrailPort
+from sovereign_rag.ports.lexical import LexicalIndexPort
 from sovereign_rag.ports.llm import LLMPort
+from sovereign_rag.ports.reranker import RerankerPort
 from sovereign_rag.ports.vector_store import VectorStorePort
 from sovereign_rag.services.ingestion import IngestionService
 from sovereign_rag.services.rag import RAGService
@@ -29,6 +34,8 @@ class Container:
     settings: Settings
     embedder: EmbeddingPort
     store: VectorStorePort
+    lexical: LexicalIndexPort
+    reranker: RerankerPort | None
     guardrail: GuardrailPort
     audit: AuditPort
     llm: LLMPort
@@ -78,6 +85,16 @@ def build_llm(settings: Settings) -> LLMPort:
     return FakeLLM(model=settings.llm_model)
 
 
+def build_reranker(settings: Settings) -> RerankerPort | None:
+    if settings.reranker_provider is RerankerProvider.LEXICAL:
+        return LexicalReranker()
+    if settings.reranker_provider is RerankerProvider.CROSS_ENCODER:
+        from sovereign_rag.adapters.cross_encoder_reranker import CrossEncoderReranker
+
+        return CrossEncoderReranker(model=settings.cross_encoder_model)
+    return None
+
+
 def build_tracer(settings: Settings) -> Tracer:
     if not settings.langfuse_enabled:
         return Tracer()
@@ -94,18 +111,22 @@ def build_tracer(settings: Settings) -> Tracer:
 def build_container(settings: Settings) -> Container:
     embedder = build_embedder(settings)
     store = build_store(settings, embedder)
+    lexical: LexicalIndexPort = BM25Index()
+    reranker = build_reranker(settings)
     guardrail: GuardrailPort = RegexGuardrail(pii_policy=settings.pii_policy)
     audit: AuditPort = FileAuditLog(settings.audit_path)
     llm = build_llm(settings)
     tracer = build_tracer(settings)
 
-    ingestion = IngestionService(embedder, store, settings)
-    retrieval = RetrievalService(embedder, store, settings)
+    ingestion = IngestionService(embedder, store, lexical, settings)
+    retrieval = RetrievalService(embedder, store, lexical, settings, reranker)
     rag = RAGService(llm, retrieval, guardrail, audit, settings, tracer)
     return Container(
         settings=settings,
         embedder=embedder,
         store=store,
+        lexical=lexical,
+        reranker=reranker,
         guardrail=guardrail,
         audit=audit,
         llm=llm,

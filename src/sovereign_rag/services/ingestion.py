@@ -6,6 +6,7 @@ from sovereign_rag.config import Settings
 from sovereign_rag.domain.exceptions import EmptyCorpusError
 from sovereign_rag.domain.models import Chunk, Document, EmbeddedChunk
 from sovereign_rag.ports.embeddings import EmbeddingPort
+from sovereign_rag.ports.lexical import LexicalIndexPort
 from sovereign_rag.ports.vector_store import VectorStorePort
 from sovereign_rag.services.chunking import chunk_text
 
@@ -15,10 +16,12 @@ class IngestionService:
         self,
         embedder: EmbeddingPort,
         store: VectorStorePort,
+        lexical: LexicalIndexPort,
         settings: Settings,
     ) -> None:
         self._embedder = embedder
         self._store = store
+        self._lexical = lexical
         self._settings = settings
 
     def ingest(self, documents: list[Document]) -> int:
@@ -33,6 +36,7 @@ class IngestionService:
             for chunk, embedding in zip(chunks, embeddings, strict=True)
         ]
         self._store.upsert(items)
+        self._lexical.index(chunks)
         return len(items)
 
     def _build_chunks(self, documents: list[Document]) -> list[Chunk]:

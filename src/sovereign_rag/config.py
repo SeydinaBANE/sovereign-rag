@@ -23,6 +23,17 @@ class VectorProvider(StrEnum):
     QDRANT = "qdrant"
 
 
+class RetrievalMode(StrEnum):
+    VECTOR = "vector"
+    HYBRID = "hybrid"
+
+
+class RerankerProvider(StrEnum):
+    NONE = "none"
+    LEXICAL = "lexical"
+    CROSS_ENCODER = "cross_encoder"
+
+
 class PIIPolicy(StrEnum):
     MASK = "mask"
     REFUSE = "refuse"
@@ -55,6 +66,13 @@ class Settings(BaseSettings):
     chunk_overlap: int = 120
     top_k: int = 5
     min_score: float = 0.25
+
+    retrieval_mode: RetrievalMode = RetrievalMode.HYBRID
+    candidate_k: int = 20
+    rrf_k: int = 60
+    reranker_provider: RerankerProvider = RerankerProvider.LEXICAL
+    rerank_candidates: int = 20
+    cross_encoder_model: str = "BAAI/bge-reranker-base"
 
     allowed_regions: list[str] = Field(default_factory=lambda: ["eu-west", "eu-central"])
     default_region: str = "eu-west"
