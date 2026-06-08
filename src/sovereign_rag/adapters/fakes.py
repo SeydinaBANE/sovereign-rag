@@ -73,10 +73,13 @@ class InMemoryVectorStore:
         self,
         embedding: list[float],
         top_k: int,
+        tenant_id: str,
         regions: list[str] | None = None,
     ) -> list[ScoredChunk]:
         scored: list[ScoredChunk] = []
         for item in self._items:
+            if item.chunk.tenant_id != tenant_id:
+                continue
             if regions is not None and item.chunk.region not in regions:
                 continue
             scored.append(ScoredChunk(chunk=item.chunk, score=_cosine(embedding, item.embedding)))

@@ -17,6 +17,7 @@ so providers are swappable and nothing is locked to a non-sovereign vendor.
 | Hybrid search (BM25 + RRF + rerank) | `adapters/bm25.py`, `services/fusion.py`, `adapters/*_reranker.py` |
 | Observability / MLOps | `observability/tracing.py`, `observability/evals.py` |
 | Security & guardrails | `adapters/presidio_guardrail.py`, `services/rag.py` |
+| RBAC + multi-tenant isolation | `domain/access.py`, `services/access_control.py`, `api/security.py` |
 | GDPR / AI Act / Data Act | `compliance/` + `docs/compliance/ai-act-mapping.md` |
 | Sovereign cloud | `memory`/`qdrant` stores, local embeddings, `docker-compose.yml` |
 | Reusable accelerator | hexagonal layering, ports/adapters, typed everywhere |

@@ -5,6 +5,8 @@ from fastapi.responses import JSONResponse
 
 from sovereign_rag.api.routers import compliance, health, ingest, query
 from sovereign_rag.domain.exceptions import (
+    AuthenticationError,
+    AuthorizationError,
     EmptyCorpusError,
     IndexEmptyError,
     ResidencyError,
@@ -12,6 +14,8 @@ from sovereign_rag.domain.exceptions import (
 )
 
 _STATUS = {
+    AuthenticationError: 401,
+    AuthorizationError: 403,
     ResidencyError: 422,
     EmptyCorpusError: 400,
     IndexEmptyError: 409,

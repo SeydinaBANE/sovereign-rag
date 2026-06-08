@@ -6,6 +6,7 @@ from functools import lru_cache
 from sovereign_rag.adapters.bm25 import BM25Index
 from sovereign_rag.adapters.fakes import FakeEmbedding, FakeLLM, InMemoryVectorStore
 from sovereign_rag.adapters.lexical_reranker import LexicalReranker
+from sovereign_rag.adapters.principals import StaticPrincipalResolver
 from sovereign_rag.adapters.regex_guardrail import RegexGuardrail
 from sovereign_rag.compliance.audit import FileAuditLog
 from sovereign_rag.config import (
@@ -18,6 +19,7 @@ from sovereign_rag.config import (
 )
 from sovereign_rag.observability.tracing import Tracer
 from sovereign_rag.ports.audit import AuditPort
+from sovereign_rag.ports.auth import PrincipalResolverPort
 from sovereign_rag.ports.embeddings import EmbeddingPort
 from sovereign_rag.ports.guardrail import GuardrailPort
 from sovereign_rag.ports.lexical import LexicalIndexPort
@@ -36,6 +38,7 @@ class Container:
     store: VectorStorePort
     lexical: LexicalIndexPort
     reranker: RerankerPort | None
+    principals: PrincipalResolverPort
     guardrail: GuardrailPort
     audit: AuditPort
     llm: LLMPort
@@ -113,6 +116,7 @@ def build_container(settings: Settings) -> Container:
     store = build_store(settings, embedder)
     lexical: LexicalIndexPort = BM25Index()
     reranker = build_reranker(settings)
+    principals: PrincipalResolverPort = StaticPrincipalResolver(settings.api_keys)
     guardrail: GuardrailPort = RegexGuardrail(pii_policy=settings.pii_policy)
     audit: AuditPort = FileAuditLog(settings.audit_path)
     llm = build_llm(settings)
@@ -127,6 +131,7 @@ def build_container(settings: Settings) -> Container:
         store=store,
         lexical=lexical,
         reranker=reranker,
+        principals=principals,
         guardrail=guardrail,
         audit=audit,
         llm=llm,

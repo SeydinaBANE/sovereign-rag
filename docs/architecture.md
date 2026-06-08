@@ -31,6 +31,9 @@ cross-cutting:  compliance/ (pii · audit · data_residency · model_card)
 
 ## Request flow — `POST /query`
 
+0. **Authenticate + authorize** — resolve the API key to a `Principal` (tenant + roles);
+   enforce the `query` permission. Every downstream store access is scoped to the principal's
+   tenant (hard isolation filter), so tenants can never read each other's data.
 1. **Guardrail (input)** — scan for prompt injection + PII (policy: mask / refuse / allow).
 2. **Embed** the (sanitized) query via `EmbeddingPort`.
 3. **Hybrid retrieve** — semantic candidates via `VectorStorePort` + lexical candidates via

@@ -45,12 +45,18 @@ graph TD
         G3[Lexical + cross-encoder reranker]:::done
     end
 
+    subgraph P7[Phase 7 - Access control]
+        H1[Roles + permissions RBAC]:::done
+        H2[Per-tenant isolation on all stores]:::done
+        H3[API-key auth + principal resolver]:::done
+    end
+
     subgraph BACKLOG[Backlog - future iterations]
         F1[Fine-tuning provider - Project B]:::todo
-        F3[RBAC / multi-tenant]:::todo
         F4[Helm chart OVHcloud / Outscale]:::todo
         F5[PII reversible vault]:::todo
         F6[Qdrant native sparse vectors for hybrid]:::todo
+        F7[JWT / OIDC auth provider]:::todo
     end
 
-    P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> BACKLOG
+    P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7 --> BACKLOG

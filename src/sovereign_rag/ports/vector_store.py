@@ -13,6 +13,7 @@ class VectorStorePort(Protocol):
         self,
         embedding: list[float],
         top_k: int,
+        tenant_id: str,
         regions: list[str] | None = None,
     ) -> list[ScoredChunk]: ...
 

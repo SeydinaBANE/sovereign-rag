@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from sovereign_rag.compliance.audit import hash_query
 from sovereign_rag.config import Settings
+from sovereign_rag.domain.access import Permission, Principal, Role
 from sovereign_rag.domain.models import Answer, Citation, Query, ScoredChunk
 from sovereign_rag.observability.tracing import Tracer, estimate_cost
 from sovereign_rag.ports.audit import AuditPort
 from sovereign_rag.ports.guardrail import GuardrailPort
 from sovereign_rag.ports.llm import LLMPort
+from sovereign_rag.services import access_control
 from sovereign_rag.services.retrieval import RetrievalService
 
 _SYSTEM = (
@@ -35,19 +37,30 @@ class RAGService:
         self._settings = settings
         self._tracer = tracer or Tracer()
 
-    def answer(self, query: Query) -> Answer:
+    def _default_principal(self) -> Principal:
+        return Principal(
+            subject="local",
+            tenant_id=self._settings.default_tenant,
+            roles=[Role.ADMIN],
+        )
+
+    def answer(self, query: Query, principal: Principal | None = None) -> Answer:
+        principal = principal or self._default_principal()
+        access_control.require(principal, Permission.QUERY)
+        tenant = principal.tenant_id
+        subject = principal.subject
         query_hash = hash_query(query.text)
         region = self._settings.default_region
 
         guard = self._guardrail.scan_input(query.text)
         if not guard.allowed:
-            self._audit.record(query_hash, [], region, f"blocked:{guard.reason}")
+            self._audit.record(query_hash, [], region, f"blocked:{guard.reason}", tenant, subject)
             return Answer(text=_REFUSAL, refused=True, model=self._settings.llm_model)
 
         sanitized = Query(text=guard.sanitized_text, top_k=query.top_k, regions=query.regions)
-        scored = self._retrieval.retrieve(sanitized)
+        scored = self._retrieval.retrieve(sanitized, tenant)
         if not scored:
-            self._audit.record(query_hash, [], region, "refused:no_context")
+            self._audit.record(query_hash, [], region, "refused:no_context", tenant, subject)
             return Answer(text=_REFUSAL, refused=True, model=self._settings.llm_model)
 
         with self._tracer.span("rag.generate", query_hash=query_hash) as span:
@@ -62,7 +75,7 @@ class RAGService:
             )
 
         sources = sorted({item.chunk.source for item in scored})
-        self._audit.record(query_hash, sources, region, "answered")
+        self._audit.record(query_hash, sources, region, "answered", tenant, subject)
         return Answer(
             text=output_guard.sanitized_text,
             citations=_build_citations(scored),
