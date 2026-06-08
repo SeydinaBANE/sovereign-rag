@@ -15,6 +15,7 @@ so providers are swappable and nothing is locked to a non-sovereign vendor.
 | LLM orchestration | `services/rag.py`, `ports/llm.py`, `adapters/mistral_llm.py` |
 | Vector search | `services/retrieval.py`, `adapters/qdrant_store.py` |
 | Hybrid search (BM25 + RRF + rerank) | `adapters/bm25.py`, `services/fusion.py`, `adapters/*_reranker.py` |
+| Persistent hybrid (Qdrant sparse vectors) | `adapters/qdrant_hybrid.py`, `adapters/sparse_embeddings.py` |
 | Observability / MLOps | `observability/tracing.py`, `observability/evals.py` |
 | Security & guardrails | `adapters/presidio_guardrail.py`, `services/rag.py` |
 | RBAC + multi-tenant isolation | `domain/access.py`, `services/access_control.py`, `api/security.py` |

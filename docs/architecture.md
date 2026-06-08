@@ -37,8 +37,10 @@ cross-cutting:  compliance/ (pii · audit · data_residency · model_card)
 1. **Guardrail (input)** — scan for prompt injection + PII (policy: mask / refuse / allow).
 2. **Embed** the (sanitized) query via `EmbeddingPort`.
 3. **Hybrid retrieve** — semantic candidates via `VectorStorePort` + lexical candidates via
-   `LexicalIndexPort` (BM25), both region-filtered. A semantic relevance gate (`min_score` on
-   the vector cosine) drives the refusal decision; in `vector` mode only the dense leg is used.
+   `LexicalIndexPort`, both tenant- and region-filtered. A semantic relevance gate (`min_score`
+   on the vector cosine) drives the refusal decision; in `vector` mode only the dense leg is used.
+   Lexical backend: in-memory BM25 by default, or **Qdrant-native sparse vectors** (one collection
+   with named dense + sparse vectors) when running on Qdrant — fully persistent, no in-process index.
 4. **Fuse + rerank** — merge the two rankings with Reciprocal Rank Fusion, then reorder the top
    candidates via `RerankerPort` (lexical by default, optional cross-encoder).
 5. **Ground** — build a citation-constrained prompt; if the gate fails, **refuse**.
