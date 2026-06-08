@@ -39,12 +39,18 @@ graph TD
         E4[unit + integration tests green]:::done
     end
 
+    subgraph P6[Phase 6 - Retrieval quality]
+        G1[BM25 lexical index]:::done
+        G2[Reciprocal Rank Fusion]:::done
+        G3[Lexical + cross-encoder reranker]:::done
+    end
+
     subgraph BACKLOG[Backlog - future iterations]
         F1[Fine-tuning provider - Project B]:::todo
-        F2[Hybrid search BM25 + reranker]:::todo
         F3[RBAC / multi-tenant]:::todo
         F4[Helm chart OVHcloud / Outscale]:::todo
         F5[PII reversible vault]:::todo
+        F6[Qdrant native sparse vectors for hybrid]:::todo
     end
 
-    P1 --> P2 --> P3 --> P4 --> P5 --> BACKLOG
+    P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> BACKLOG

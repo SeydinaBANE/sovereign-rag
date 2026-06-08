@@ -33,12 +33,16 @@ cross-cutting:  compliance/ (pii · audit · data_residency · model_card)
 
 1. **Guardrail (input)** — scan for prompt injection + PII (policy: mask / refuse / allow).
 2. **Embed** the (sanitized) query via `EmbeddingPort`.
-3. **Retrieve** top-k chunks via `VectorStorePort`, filtered by allowed regions and `min_score`.
-4. **Ground** — build a citation-constrained prompt; if no chunk passes `min_score`, **refuse**.
-5. **Generate** via `LLMPort`.
-6. **Guardrail (output)** — scan generated answer.
-7. **Audit** — append a hash-chained record (query hash, sources, region, decision).
-8. **Trace** — emit span (latency, tokens, cost, eval scores) to Langfuse/OTel.
+3. **Hybrid retrieve** — semantic candidates via `VectorStorePort` + lexical candidates via
+   `LexicalIndexPort` (BM25), both region-filtered. A semantic relevance gate (`min_score` on
+   the vector cosine) drives the refusal decision; in `vector` mode only the dense leg is used.
+4. **Fuse + rerank** — merge the two rankings with Reciprocal Rank Fusion, then reorder the top
+   candidates via `RerankerPort` (lexical by default, optional cross-encoder).
+5. **Ground** — build a citation-constrained prompt; if the gate fails, **refuse**.
+6. **Generate** via `LLMPort`.
+7. **Guardrail (output)** — scan generated answer.
+8. **Audit** — append a hash-chained record (query hash, sources, region, decision).
+9. **Trace** — emit span (latency, tokens, cost, eval scores) to Langfuse/OTel.
 
 ## Key design decisions (ADRs, condensed)
 
