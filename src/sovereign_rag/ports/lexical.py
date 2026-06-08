@@ -13,6 +13,7 @@ class LexicalIndexPort(Protocol):
         self,
         text: str,
         top_k: int,
+        tenant_id: str,
         regions: list[str] | None = None,
     ) -> list[ScoredChunk]: ...
 

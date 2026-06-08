@@ -3,8 +3,17 @@ from __future__ import annotations
 from enum import StrEnum
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from sovereign_rag.domain.access import Role
+
+
+class ApiKeyPrincipal(BaseModel):
+    key: str
+    subject: str
+    tenant_id: str
+    roles: list[Role] = Field(default_factory=list)
 
 
 class LLMProvider(StrEnum):
@@ -76,6 +85,10 @@ class Settings(BaseSettings):
 
     allowed_regions: list[str] = Field(default_factory=lambda: ["eu-west", "eu-central"])
     default_region: str = "eu-west"
+
+    auth_enabled: bool = False
+    default_tenant: str = "default"
+    api_keys: list[ApiKeyPrincipal] = Field(default_factory=list)
     pii_policy: PIIPolicy = PIIPolicy.MASK
     audit_path: str = "data/audit/audit.log"
 

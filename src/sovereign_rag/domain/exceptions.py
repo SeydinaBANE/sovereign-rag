@@ -22,6 +22,14 @@ class GuardrailBlockedError(SovereignRagError):
         self.reason = reason
 
 
+class AuthenticationError(SovereignRagError):
+    """Raised when a request carries no valid credential."""
+
+
+class AuthorizationError(SovereignRagError):
+    """Raised when a principal lacks a required permission or tenant access."""
+
+
 class EmptyCorpusError(SovereignRagError):
     """Raised when ingestion receives no usable content."""
 

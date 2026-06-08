@@ -27,6 +27,7 @@ A typical enterprise RAG assistant lands in **Limited risk** → transparency + 
 | Data minimisation (GDPR Art. 5) | PII masked at ingestion and on I/O | `compliance/pii.py` |
 | Right to erasure (GDPR Art. 17) | delete-by-source on the vector store | `ports/vector_store.py` (`delete`) |
 | Data residency / sovereignty (Data Act) | region tag per chunk + retrieval filter + config guard | `compliance/data_residency.py` |
+| Access control & data segregation (GDPR Art. 32) | RBAC roles + per-tenant isolation filter on every store | `domain/access.py`, `services/access_control.py` |
 | Security / prompt-injection resistance | input + output guardrails | `adapters/presidio_guardrail.py`, `services/rag.py` |
 | Technical documentation (Annex IV) | auto-generated model card | `compliance/model_card.py` |
 | Accuracy monitoring (Art. 15) | automated eval harness (groundedness/relevance) | `observability/evals.py` |

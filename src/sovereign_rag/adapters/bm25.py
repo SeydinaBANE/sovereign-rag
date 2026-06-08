@@ -35,6 +35,7 @@ class BM25Index:
         self,
         text: str,
         top_k: int,
+        tenant_id: str,
         regions: list[str] | None = None,
     ) -> list[ScoredChunk]:
         query_terms = tokenize(text)
@@ -46,6 +47,8 @@ class BM25Index:
 
         scored: list[ScoredChunk] = []
         for cid, chunk in self._chunks.items():
+            if chunk.tenant_id != tenant_id:
+                continue
             if regions is not None and chunk.region not in regions:
                 continue
             score = self._score(

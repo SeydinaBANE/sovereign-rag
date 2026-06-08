@@ -37,13 +37,15 @@ class QdrantStore:
         self,
         embedding: list[float],
         top_k: int,
+        tenant_id: str,
         regions: list[str] | None = None,
     ) -> list[ScoredChunk]:
-        from qdrant_client.models import FieldCondition, Filter, MatchAny
+        from qdrant_client.models import FieldCondition, Filter, MatchAny, MatchValue
 
-        query_filter = None
+        must: list[object] = [FieldCondition(key="tenant_id", match=MatchValue(value=tenant_id))]
         if regions is not None:
-            query_filter = Filter(must=[FieldCondition(key="region", match=MatchAny(any=regions))])
+            must.append(FieldCondition(key="region", match=MatchAny(any=regions)))
+        query_filter = Filter(must=must)
         hits = self._client.search(
             collection_name=self._collection,
             query_vector=embedding,
@@ -80,6 +82,7 @@ class QdrantStore:
             text=str(payload.get("text", "")),
             source=str(payload.get("source", "")),
             region=str(payload.get("region", "")),
+            tenant_id=str(payload.get("tenant_id", "default")),
             position=int(payload.get("position", 0)),
             metadata={k: str(v) for k, v in dict(payload.get("metadata", {})).items()},
         )

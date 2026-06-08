@@ -24,10 +24,11 @@ class IngestionService:
         self._lexical = lexical
         self._settings = settings
 
-    def ingest(self, documents: list[Document]) -> int:
+    def ingest(self, documents: list[Document], tenant_id: str | None = None) -> int:
         if not documents:
             raise EmptyCorpusError("No documents provided for ingestion.")
-        chunks = self._build_chunks(documents)
+        tenant = tenant_id or self._settings.default_tenant
+        chunks = self._build_chunks(documents, tenant)
         if not chunks:
             raise EmptyCorpusError("Documents produced no usable text after processing.")
         embeddings = self._embedder.embed([chunk.text for chunk in chunks])
@@ -39,7 +40,7 @@ class IngestionService:
         self._lexical.index(chunks)
         return len(items)
 
-    def _build_chunks(self, documents: list[Document]) -> list[Chunk]:
+    def _build_chunks(self, documents: list[Document], tenant_id: str) -> list[Chunk]:
         allowed = self._settings.allowed_regions
         chunks: list[Chunk] = []
         for document in documents:
@@ -53,11 +54,12 @@ class IngestionService:
             for position, piece in enumerate(pieces):
                 chunks.append(
                     Chunk(
-                        id=f"{document.id}:{position}",
+                        id=f"{tenant_id}:{document.id}:{position}",
                         document_id=document.id,
                         text=piece,
                         source=document.source,
                         region=document.region,
+                        tenant_id=tenant_id,
                         position=position,
                         metadata=document.metadata,
                     )

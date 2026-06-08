@@ -26,20 +26,21 @@ class RetrievalService:
         self._settings = settings
         self._reranker = reranker
 
-    def retrieve(self, query: Query) -> list[ScoredChunk]:
+    def retrieve(self, query: Query, tenant_id: str | None = None) -> list[ScoredChunk]:
         if self._store.count() == 0:
             raise IndexEmptyError("The vector store is empty; ingest documents first.")
+        tenant = tenant_id or self._settings.default_tenant
         regions = filter_regions(query.regions, self._settings.allowed_regions)
         top_k = query.top_k or self._settings.top_k
 
         embedding = self._embedder.embed([query.text])[0]
-        vector = self._store.search(embedding, self._settings.candidate_k, regions)
+        vector = self._store.search(embedding, self._settings.candidate_k, tenant, regions)
         if not self._is_relevant(vector):
             return []
         if self._settings.retrieval_mode is RetrievalMode.VECTOR:
             return [item for item in vector if item.score >= self._settings.min_score][:top_k]
 
-        lexical = self._lexical.search(query.text, self._settings.candidate_k, regions)
+        lexical = self._lexical.search(query.text, self._settings.candidate_k, tenant, regions)
         fused = reciprocal_rank_fusion([vector, lexical], self._settings.rrf_k)
         candidates = fused[: self._settings.rerank_candidates]
         if self._reranker is None:

@@ -21,7 +21,7 @@ def test_bm25_ranks_exact_term_match_first():
             _chunk("2", "expense receipts reimbursement finance team"),
         ]
     )
-    results = index.search("remote work policy", top_k=2)
+    results = index.search("remote work policy", top_k=2, tenant_id="default")
     assert results[0].chunk.id == "1"
     assert results[0].score > 0
 
@@ -29,13 +29,13 @@ def test_bm25_ranks_exact_term_match_first():
 def test_bm25_returns_empty_for_unknown_terms():
     index = BM25Index()
     index.index([_chunk("1", "remote work policy")])
-    assert index.search("quantum chromodynamics", top_k=5) == []
+    assert index.search("quantum chromodynamics", top_k=5, tenant_id="default") == []
 
 
 def test_bm25_region_filter():
     index = BM25Index()
     index.index([_chunk("1", "data retention policy", region="eu-central")])
-    assert index.search("data retention", top_k=5, regions=["eu-west"]) == []
+    assert index.search("data retention", top_k=5, tenant_id="default", regions=["eu-west"]) == []
 
 
 def test_bm25_delete_by_source():

@@ -24,7 +24,7 @@ def test_embedding_overlap_ranks_relevant_chunk_first():
         ]
     )
     query = embedder.embed(["how many days remote work per week"])[0]
-    results = store.search(query, top_k=2)
+    results = store.search(query, top_k=2, tenant_id="default")
     assert results[0].chunk.id == "1"
     assert results[0].score > results[1].score
 
@@ -34,7 +34,7 @@ def test_store_region_filter_excludes_other_regions():
     store = InMemoryVectorStore()
     store.upsert([_embedded("1", "data retention policy", "eu-central", embedder)])
     query = embedder.embed(["data retention"])[0]
-    assert store.search(query, top_k=5, regions=["eu-west"]) == []
+    assert store.search(query, top_k=5, tenant_id="default", regions=["eu-west"]) == []
 
 
 def test_store_delete_by_source():

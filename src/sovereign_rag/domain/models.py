@@ -32,6 +32,7 @@ class Document(BaseModel):
     text: str
     source: str
     region: str
+    tenant_id: str = "default"
     metadata: dict[str, str] = Field(default_factory=dict)
 
 
@@ -41,6 +42,7 @@ class Chunk(BaseModel):
     text: str
     source: str
     region: str
+    tenant_id: str = "default"
     position: int
     metadata: dict[str, str] = Field(default_factory=dict)
 
@@ -88,6 +90,8 @@ class AuditRecord(BaseModel):
     query_hash: str
     sources: list[str]
     region: str
+    tenant_id: str = "default"
+    subject: str = "system"
     decision: str
     prev_hash: str
     hash: str
