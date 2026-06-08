@@ -1,0 +1,50 @@
+%% Sovereign RAG — build roadmap (Mermaid)
+%% Render: https://mermaid.live  ·  done = current state, future = backlog
+graph TD
+    classDef done fill:#1f7a4d,stroke:#0d3b25,color:#fff;
+    classDef wip fill:#b8860b,stroke:#6b4e00,color:#fff;
+    classDef todo fill:#37474f,stroke:#1c262b,color:#fff;
+
+    subgraph P1[Phase 1 - Foundation]
+        A1[pyproject + ruff + mypy strict]:::done
+        A2[Makefile + pre-commit]:::done
+        A3[.env.example + config Settings]:::done
+        A4[GitHub Actions CI]:::done
+    end
+
+    subgraph P2[Phase 2 - Domain & Ports]
+        B1[domain models + exceptions]:::done
+        B2[ports: LLM/Embedding/VectorStore/Guardrail/Audit]:::done
+    end
+
+    subgraph P3[Phase 3 - Adapters & Services]
+        C1[fake + mistral + qdrant + presidio adapters]:::done
+        C2[IngestionService]:::done
+        C3[RetrievalService]:::done
+        C4[RAGService with citations + refusal]:::done
+    end
+
+    subgraph P4[Phase 4 - Compliance & Observability]
+        D1[PII masking]:::done
+        D2[hash-chained audit log]:::done
+        D3[data residency guard]:::done
+        D4[AI Act model card generator]:::done
+        D5[tracing + evals harness]:::done
+    end
+
+    subgraph P5[Phase 5 - API, Demo, Ops]
+        E1[FastAPI routers + schemas]:::done
+        E2[demo script + sample corpus]:::done
+        E3[Dockerfile + docker-compose]:::done
+        E4[unit + integration tests green]:::done
+    end
+
+    subgraph BACKLOG[Backlog - future iterations]
+        F1[Fine-tuning provider - Project B]:::todo
+        F2[Hybrid search BM25 + reranker]:::todo
+        F3[RBAC / multi-tenant]:::todo
+        F4[Helm chart OVHcloud / Outscale]:::todo
+        F5[PII reversible vault]:::todo
+    end
+
+    P1 --> P2 --> P3 --> P4 --> P5 --> BACKLOG

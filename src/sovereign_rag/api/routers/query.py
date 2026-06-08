@@ -1,0 +1,21 @@
+from __future__ import annotations
+
+from typing import Annotated
+
+from fastapi import APIRouter, Depends
+
+from sovereign_rag.api.schemas import QueryRequest
+from sovereign_rag.container import Container, get_container
+from sovereign_rag.domain.models import Answer, Query
+
+router = APIRouter(tags=["rag"])
+
+
+@router.post("/query", response_model=Answer)
+def query(
+    request: QueryRequest,
+    container: Annotated[Container, Depends(get_container)],
+) -> Answer:
+    return container.rag.answer(
+        Query(text=request.text, top_k=request.top_k, regions=request.regions)
+    )
