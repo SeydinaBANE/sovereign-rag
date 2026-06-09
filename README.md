@@ -41,9 +41,15 @@ Hexagonal. The **domain** depends on nothing. **Services** depend on **ports**
 (`Protocol`s). **Adapters** implement ports. Compliance and observability are
 cross-cutting concerns injected into services. See [`docs/architecture.md`](docs/architecture.md).
 
-```
-API (FastAPI) -> Services -> Ports <- Adapters (Mistral / Qdrant / Presidio / ...)
-                     \-> compliance/ + observability/ (cross-cutting)
+```mermaid
+flowchart LR
+    Client(["Client<br/>x-api-key / Bearer JWT"]) --> API["API · FastAPI routers"]
+    API --> SEC["Auth + RBAC<br/>tenant scoping"]
+    SEC --> SVC["Services<br/>ingestion · retrieval · RAG · fine-tuning"]
+    SVC --> PORTS{{"Ports (Protocol)"}}
+    PORTS --> AD["Adapters<br/>Mistral · Qdrant · Presidio<br/>OIDC · LoRA · PII vault · fakes"]
+    SVC -.-> CC["compliance<br/>PII · audit · residency · model cards"]
+    SVC -.-> OBS["observability<br/>tracing · evals"]
 ```
 
 ## Quickstart (no external services)
@@ -109,6 +115,8 @@ All config is environment-driven via `pydantic-settings` (prefix `SRAG_`). See t
 | [Deployment](docs/deployment.md) | Helm chart, OVHcloud/Outscale overlays, image publishing |
 | [AI Act mapping](docs/compliance/ai-act-mapping.md) | Regulatory-to-technical control mapping |
 | [Roadmap](TODO.mmd) | Build phases and backlog (Mermaid) |
+| [Contributing](CONTRIBUTING.md) | Dev setup, branching flow, the provider pattern |
+| [Security](SECURITY.md) | Reporting, posture, deployment hardening |
 | [CLAUDE.md](CLAUDE.md) | Repo guide for contributors / AI agents |
 
 ## Project status
