@@ -62,8 +62,16 @@ api (FastAPI routers) → services → ports (Protocol) ← adapters (Mistral/Qd
 - **`compliance/`** — cross-cutting: `pii` (mask/refuse/allow), `audit` (append-only **hash-chained**
   log, no DB), `data_residency` (region filtering enforced at retrieval, not just config), `model_card`.
 - **`observability/`** — `tracing` (Langfuse/OTel spans) and `evals` (automated eval scores).
-- **`api/`** — FastAPI app, routers (`ingest`, `query`, `compliance`, `fine_tuning`, `health`), DTO
-  `schemas.py`, and `security.py` (API-key → `Principal` resolution as a FastAPI dependency).
+- **`api/`** — FastAPI app, routers (`ingest`, `query`, `compliance`, `fine_tuning`, `pii`, `health`),
+  DTO `schemas.py`, and `security.py` (API-key → `Principal` resolution as a FastAPI dependency).
+
+### Reversible PII vault (`services` integration, `ports/vault.py`)
+
+`PIIVaultPort` (`InMemoryPIIVault`: deterministic per-tenant tokens, Fernet-encrypted values). Gated by
+`SRAG_PII_VAULT_ON_INGEST` (default off): when on, `IngestionService` tokenizes PII instead of
+destructively masking, and `RAGService` detokenizes the answer + citations for the authorized principal
+(audited). Also exposed as `/pii/tokenize` (perm `ingest`) and `/pii/detokenize` (perm `manage`), both
+tenant-scoped and audited.
 
 ### Fine-tuning (`services/fine_tuning.py`, `ports/fine_tuning.py`)
 

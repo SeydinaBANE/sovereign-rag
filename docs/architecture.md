@@ -71,6 +71,10 @@ and emits a trace span. Provider selected by `SRAG_FINE_TUNING_PROVIDER` (`none|
   `mistralai`, `qdrant-client`, or `presidio` installed.
 - **Append-only hash-chained audit log** → tamper-evidence for AI Act traceability without a DB.
 - **Region metadata on every chunk** → data-residency enforced at retrieval time, not just config.
+- **Reversible PII vault** (`PIIVaultPort`) → with `SRAG_PII_VAULT_ON_INGEST`, ingestion tokenizes
+  PII into deterministic, tenant-scoped tokens (values encrypted at rest) instead of destructively
+  masking; the vector store and LLM only ever see tokens, and answers/citations are detokenized for
+  the authorized principal (audited). Also exposed as audited `/pii/tokenize` + `/pii/detokenize`.
 
 ## Sovereign deployment (OVHcloud / Outscale)
 

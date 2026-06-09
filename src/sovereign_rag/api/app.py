@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from sovereign_rag.api.routers import compliance, fine_tuning, health, ingest, query
+from sovereign_rag.api.routers import compliance, fine_tuning, health, ingest, pii, query
 from sovereign_rag.domain.exceptions import (
     AuthenticationError,
     AuthorizationError,
@@ -39,6 +39,7 @@ def create_app() -> FastAPI:
     app.include_router(query.router)
     app.include_router(compliance.router)
     app.include_router(fine_tuning.router)
+    app.include_router(pii.router)
 
     @app.exception_handler(SovereignRagError)
     async def _handle_domain_error(_: Request, exc: SovereignRagError) -> JSONResponse:
