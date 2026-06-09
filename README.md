@@ -1,5 +1,14 @@
 # Sovereign RAG
 
+[![CI](https://github.com/SeydinaBANE/sovereign-rag/actions/workflows/ci.yml/badge.svg)](https://github.com/SeydinaBANE/sovereign-rag/actions/workflows/ci.yml)
+[![Publish image](https://github.com/SeydinaBANE/sovereign-rag/actions/workflows/release.yml/badge.svg)](https://github.com/SeydinaBANE/sovereign-rag/actions/workflows/release.yml)
+[![Release](https://img.shields.io/github/v/release/SeydinaBANE/sovereign-rag?sort=semver)](https://github.com/SeydinaBANE/sovereign-rag/releases)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
+[![Checked with mypy](https://img.shields.io/badge/mypy-strict-2a6db2.svg)](pyproject.toml)
+[![Ruff](https://img.shields.io/badge/lint-ruff-261230.svg)](pyproject.toml)
+[![Image](https://img.shields.io/badge/ghcr.io-sovereign--rag-2496ed.svg)](https://github.com/SeydinaBANE/sovereign-rag/pkgs/container/sovereign-rag)
+
 A **sovereign, compliance-by-design RAG accelerator** for enterprise environments.
 
 Built to demonstrate a production-grade reference architecture: **Mistral** LLM,
@@ -77,16 +86,35 @@ helm upgrade --install srag deploy/helm/sovereign-rag -n sovereign-rag --create-
 EU region pinning, optional self-hosted Qdrant, HPA, TLS ingress and secret management.
 See [`docs/deployment.md`](docs/deployment.md).
 
+## Container image
+
+Multi-arch images (`linux/amd64`, `linux/arm64`) are published to GHCR on every release:
+
+```bash
+docker pull ghcr.io/seydinabane/sovereign-rag:0.1.0   # or :latest
+```
+
 ## Configuration
 
-All config is environment-driven via `pydantic-settings` (prefix `SRAG_`). See
-[`.env.example`](.env.example) for every knob (providers, chunking, top-k, regions,
-PII policy, Langfuse).
+All config is environment-driven via `pydantic-settings` (prefix `SRAG_`). See the
+[configuration reference](docs/configuration.md) for every setting, or
+[`.env.example`](.env.example) for a ready-to-edit template.
+
+## Documentation
+
+| Doc | Contents |
+|---|---|
+| [Architecture](docs/architecture.md) | Hexagonal layers, request flow, ADRs, sovereign deployment |
+| [Configuration](docs/configuration.md) | Full `SRAG_*` reference (providers, retrieval, auth, vault, compliance) |
+| [Deployment](docs/deployment.md) | Helm chart, OVHcloud/Outscale overlays, image publishing |
+| [AI Act mapping](docs/compliance/ai-act-mapping.md) | Regulatory-to-technical control mapping |
+| [Roadmap](TODO.mmd) | Build phases and backlog (Mermaid) |
+| [CLAUDE.md](CLAUDE.md) | Repo guide for contributors / AI agents |
 
 ## Project status
 
-See [`TODO.mmd`](TODO.mmd) for the build roadmap and backlog.
+All roadmap phases (1–12) are delivered — see [`TODO.mmd`](TODO.mmd).
 
 ## License
 
-Apache-2.0.
+[Apache-2.0](LICENSE).
