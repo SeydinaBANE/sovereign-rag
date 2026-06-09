@@ -54,6 +54,13 @@ class PIIPolicy(StrEnum):
     ALLOW = "allow"
 
 
+class FineTuningProvider(StrEnum):
+    NONE = "none"
+    FAKE = "fake"
+    MISTRAL = "mistral"
+    LOCAL = "local"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="SRAG_",
@@ -98,6 +105,14 @@ class Settings(BaseSettings):
     api_keys: list[ApiKeyPrincipal] = Field(default_factory=list)
     pii_policy: PIIPolicy = PIIPolicy.MASK
     audit_path: str = "data/audit/audit.log"
+
+    fine_tuning_provider: FineTuningProvider = FineTuningProvider.FAKE
+    fine_tuning_base_model: str = "open-mistral-7b"
+    fine_tuning_epochs: int = 3
+    fine_tuning_learning_rate: float = 1e-4
+    fine_tuning_suffix: str = "sovereign"
+    fine_tuning_min_examples: int = 10
+    fine_tuning_output_dir: str = "data/fine_tuning"
 
     langfuse_enabled: bool = False
     langfuse_host: str = "http://localhost:3000"
