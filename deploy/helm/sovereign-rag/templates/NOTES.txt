@@ -1,0 +1,29 @@
+Sovereign RAG {{ .Chart.AppVersion }} deployed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+Image: {{ include "sovereign-rag.image" . }}
+Replicas: {{ if .Values.autoscaling.enabled }}{{ .Values.autoscaling.minReplicas }}–{{ .Values.autoscaling.maxReplicas }} (HPA){{ else }}{{ .Values.replicaCount }}{{ end }}
+Vector store: {{ if .Values.qdrant.enabled }}bundled Qdrant ({{ include "sovereign-rag.qdrant.fullname" . }}){{ else }}{{ .Values.config.SRAG_VECTOR_PROVIDER }}{{ end }}
+
+Check rollout:
+  kubectl -n {{ .Release.Namespace }} rollout status deploy/{{ include "sovereign-rag.fullname" . }}
+
+{{- if .Values.ingress.enabled }}
+
+Reachable via Ingress:
+{{- range .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}
+{{- end }}
+{{- else }}
+
+Port-forward to reach the API locally:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "sovereign-rag.fullname" . }} 8000:{{ .Values.service.port }}
+  open http://localhost:8000/docs
+{{- end }}
+
+{{- if not .Values.secrets.existingSecret }}
+{{- if not .Values.secrets.data }}
+
+WARNING: no secrets configured. Set secrets.data or secrets.existingSecret before enabling
+the Mistral / OIDC / Langfuse providers (do not put keys in config/ConfigMap).
+{{- end }}
+{{- end }}

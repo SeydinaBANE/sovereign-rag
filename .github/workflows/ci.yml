@@ -34,3 +34,23 @@ jobs:
 
       - name: Tests (pytest + coverage)
         run: uv run pytest
+
+  helm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.2
+
+      - name: Lint chart
+        run: helm lint deploy/helm/sovereign-rag
+
+      - name: Render chart (default + EU overlays)
+        run: |
+          helm template srag deploy/helm/sovereign-rag > /dev/null
+          helm template srag deploy/helm/sovereign-rag -f deploy/helm/sovereign-rag/values-ovhcloud.yaml > /dev/null
+          helm template srag deploy/helm/sovereign-rag -f deploy/helm/sovereign-rag/values-outscale.yaml > /dev/null
+          helm template srag deploy/helm/sovereign-rag --set qdrant.enabled=true --set secrets.data.SRAG_MISTRAL_API_KEY=x > /dev/null

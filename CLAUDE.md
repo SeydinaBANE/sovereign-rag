@@ -36,6 +36,10 @@ uv run pytest -k "tenant"                                       # by keyword
 
 Before returning code, the global rule applies: `make lint typecheck test` must all be green.
 
+Helm chart (`deploy/helm/sovereign-rag`, deploys API + optional Qdrant to EU K8s) — validate with
+`make helm-lint` and `make helm-template` (requires `helm`); CI also lints/renders it. EU overlays:
+`values-ovhcloud.yaml`, `values-outscale.yaml`. See `docs/deployment.md`.
+
 ## Architecture (the big picture)
 
 Dependency direction is strictly inward — **domain depends on nothing**:

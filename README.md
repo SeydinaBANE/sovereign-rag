@@ -65,6 +65,16 @@ cp .env.example .env   # set SRAG_VECTOR_PROVIDER=qdrant, SRAG_LLM_PROVIDER=mist
 make up                # api + qdrant + langfuse + postgres
 ```
 
+## Sovereign Kubernetes (Helm — OVHcloud / Outscale)
+
+```bash
+helm upgrade --install srag deploy/helm/sovereign-rag -n sovereign-rag --create-namespace \
+  -f deploy/helm/sovereign-rag/values-ovhcloud.yaml   # or values-outscale.yaml
+```
+
+EU region pinning, optional self-hosted Qdrant, HPA, TLS ingress and secret management.
+See [`docs/deployment.md`](docs/deployment.md).
+
 ## Configuration
 
 All config is environment-driven via `pydantic-settings` (prefix `SRAG_`). See

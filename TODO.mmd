@@ -70,9 +70,14 @@ graph TD
         F7c[Claim mapping to tenant + RBAC]:::done
     end
 
+    subgraph P11[Phase 11 - Sovereign deployment]
+        F4a[Helm chart - API deploy/svc/ingress/HPA]:::done
+        F4b[Optional self-hosted Qdrant StatefulSet]:::done
+        F4c[OVHcloud / Outscale EU overlays + CI lint]:::done
+    end
+
     subgraph BACKLOG[Backlog - future iterations]
-        F4[Helm chart OVHcloud / Outscale]:::todo
         F5[PII reversible vault]:::todo
     end
 
-    P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7 --> P8 --> P9 --> P10 --> BACKLOG
+    P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7 --> P8 --> P9 --> P10 --> P11 --> BACKLOG

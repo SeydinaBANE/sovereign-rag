@@ -1,0 +1,16 @@
+{{- $config := deepCopy .Values.config -}}
+{{- if .Values.qdrant.enabled -}}
+{{- $url := printf "http://%s:%d" (include "sovereign-rag.qdrant.fullname" .) (int .Values.qdrant.port) -}}
+{{- $_ := set $config "SRAG_VECTOR_PROVIDER" "qdrant" -}}
+{{- $_ := set $config "SRAG_QDRANT_URL" $url -}}
+{{- end -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "sovereign-rag.fullname" . }}
+  labels:
+    {{- include "sovereign-rag.labels" . | nindent 4 }}
+data:
+  {{- range $key, $value := $config }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
