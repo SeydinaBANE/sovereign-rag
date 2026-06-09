@@ -61,6 +61,11 @@ class FineTuningProvider(StrEnum):
     LOCAL = "local"
 
 
+class AuthProvider(StrEnum):
+    STATIC = "static"
+    OIDC = "oidc"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="SRAG_",
@@ -101,8 +106,17 @@ class Settings(BaseSettings):
     default_region: str = "eu-west"
 
     auth_enabled: bool = False
+    auth_provider: AuthProvider = AuthProvider.STATIC
     default_tenant: str = "default"
     api_keys: list[ApiKeyPrincipal] = Field(default_factory=list)
+    oidc_issuer: str = ""
+    oidc_audience: str = ""
+    oidc_jwks_url: str = ""
+    oidc_algorithms: list[str] = Field(default_factory=lambda: ["RS256"])
+    oidc_hs256_secret: str = ""
+    oidc_subject_claim: str = "sub"
+    oidc_tenant_claim: str = "tenant_id"
+    oidc_roles_claim: str = "roles"
     pii_policy: PIIPolicy = PIIPolicy.MASK
     audit_path: str = "data/audit/audit.log"
 
