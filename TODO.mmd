@@ -76,8 +76,10 @@ graph TD
         F4c[OVHcloud / Outscale EU overlays + CI lint]:::done
     end
 
-    subgraph BACKLOG[Backlog - future iterations]
-        F5[PII reversible vault]:::todo
+    subgraph P12[Phase 12 - Reversible PII vault]
+        F5a[PIIVaultPort + encrypted in-memory vault]:::done
+        F5b[Tokenize at ingest + detokenize in RAG]:::done
+        F5c[Audited tenant-scoped tokenize/detokenize API]:::done
     end
 
-    P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7 --> P8 --> P9 --> P10 --> P11 --> BACKLOG
+    P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7 --> P8 --> P9 --> P10 --> P11 --> P12

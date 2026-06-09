@@ -118,6 +118,8 @@ class Settings(BaseSettings):
     oidc_tenant_claim: str = "tenant_id"
     oidc_roles_claim: str = "roles"
     pii_policy: PIIPolicy = PIIPolicy.MASK
+    pii_vault_secret: str = ""
+    pii_vault_on_ingest: bool = False
     audit_path: str = "data/audit/audit.log"
 
     fine_tuning_provider: FineTuningProvider = FineTuningProvider.FAKE

@@ -51,3 +51,11 @@ class FineTuningRequest(BaseModel):
     epochs: int | None = None
     learning_rate: float | None = None
     suffix: str | None = None
+
+
+class PIITextRequest(BaseModel):
+    text: str
+
+
+class DetokenizeResponse(BaseModel):
+    text: str

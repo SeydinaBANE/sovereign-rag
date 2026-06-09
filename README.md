@@ -19,6 +19,7 @@ so providers are swappable and nothing is locked to a non-sovereign vendor.
 | LLM fine-tuning (LoRA: Mistral / on-prem) | `services/fine_tuning.py`, `ports/fine_tuning.py`, `adapters/mistral_fine_tuning.py`, `adapters/local_lora.py` |
 | Observability / MLOps | `observability/tracing.py`, `observability/evals.py` |
 | Security & guardrails | `adapters/presidio_guardrail.py`, `services/rag.py` |
+| Reversible PII vault (tokenize/detokenize) | `ports/vault.py`, `adapters/pii_vault.py`, `api/routers/pii.py` |
 | RBAC + multi-tenant isolation | `domain/access.py`, `services/access_control.py`, `api/security.py` |
 | Auth providers (API key / JWT-OIDC) | `ports/auth.py`, `adapters/principals.py`, `adapters/oidc_principals.py` |
 | GDPR / AI Act / Data Act | `compliance/` + `docs/compliance/ai-act-mapping.md` |
@@ -56,7 +57,8 @@ make run           # http://localhost:8000/docs
 ```
 
 Key endpoints: `POST /ingest`, `POST /query`, `GET /compliance/card`,
-`POST /fine-tuning/jobs` (admin), `GET /healthz`.
+`POST /fine-tuning/jobs` (admin), `POST /pii/tokenize`, `POST /pii/detokenize` (admin),
+`GET /healthz`.
 
 ## Full sovereign stack (Docker)
 

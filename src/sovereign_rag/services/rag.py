@@ -8,6 +8,7 @@ from sovereign_rag.observability.tracing import Tracer, estimate_cost
 from sovereign_rag.ports.audit import AuditPort
 from sovereign_rag.ports.guardrail import GuardrailPort
 from sovereign_rag.ports.llm import LLMPort
+from sovereign_rag.ports.vault import PIIVaultPort
 from sovereign_rag.services import access_control
 from sovereign_rag.services.retrieval import RetrievalService
 
@@ -29,6 +30,7 @@ class RAGService:
         audit: AuditPort,
         settings: Settings,
         tracer: Tracer | None = None,
+        vault: PIIVaultPort | None = None,
     ) -> None:
         self._llm = llm
         self._retrieval = retrieval
@@ -36,6 +38,7 @@ class RAGService:
         self._audit = audit
         self._settings = settings
         self._tracer = tracer or Tracer()
+        self._vault = vault
 
     def _default_principal(self) -> Principal:
         return Principal(
@@ -76,12 +79,36 @@ class RAGService:
 
         sources = sorted({item.chunk.source for item in scored})
         self._audit.record(query_hash, sources, region, "answered", tenant, subject)
+        answer_text, citations = self._restore_pii(
+            output_guard.sanitized_text, _build_citations(scored), tenant, subject, query_hash
+        )
         return Answer(
-            text=output_guard.sanitized_text,
-            citations=_build_citations(scored),
+            text=answer_text,
+            citations=citations,
             refused=False,
             model=response.model or self._settings.llm_model,
         )
+
+    def _restore_pii(
+        self,
+        text: str,
+        citations: list[Citation],
+        tenant: str,
+        subject: str,
+        query_hash: str,
+    ) -> tuple[str, list[Citation]]:
+        if not (self._settings.pii_vault_on_ingest and self._vault is not None):
+            return text, citations
+        vault = self._vault
+        restored = vault.detokenize(text, tenant)
+        citations = [
+            citation.model_copy(update={"snippet": vault.detokenize(citation.snippet, tenant)})
+            for citation in citations
+        ]
+        self._audit.record(
+            query_hash, [], self._settings.default_region, "pii:detokenize", tenant, subject
+        )
+        return restored, citations
 
 
 def _build_prompt(question: str, scored: list[ScoredChunk]) -> str:

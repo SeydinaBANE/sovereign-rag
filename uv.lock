@@ -3634,6 +3634,9 @@ pii = [
     { name = "presidio-analyzer" },
     { name = "presidio-anonymizer" },
 ]
+pii-vault = [
+    { name = "cryptography" },
+]
 qdrant = [
     { name = "qdrant-client" },
 ]
@@ -3643,6 +3646,7 @@ rerank = [
 
 [package.metadata]
 requires-dist = [
+    { name = "cryptography", marker = "extra == 'pii-vault'", specifier = ">=42" },
     { name = "datasets", marker = "extra == 'finetune-local'", specifier = ">=2.19" },
     { name = "fastapi", specifier = ">=0.111" },
     { name = "fastembed", marker = "extra == 'embeddings'", specifier = ">=0.3" },
@@ -3671,7 +3675,7 @@ requires-dist = [
     { name = "trl", marker = "extra == 'finetune-local'", specifier = ">=0.9" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
 ]
-provides-extras = ["mistral", "qdrant", "embeddings", "rerank", "pii", "observability", "auth-oidc", "finetune-local", "dev"]
+provides-extras = ["mistral", "qdrant", "embeddings", "rerank", "pii", "observability", "auth-oidc", "pii-vault", "finetune-local", "dev"]
 
 [[package]]
 name = "spacy"

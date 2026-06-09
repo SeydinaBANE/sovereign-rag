@@ -34,6 +34,7 @@ from sovereign_rag.ports.guardrail import GuardrailPort
 from sovereign_rag.ports.lexical import LexicalIndexPort
 from sovereign_rag.ports.llm import LLMPort
 from sovereign_rag.ports.reranker import RerankerPort
+from sovereign_rag.ports.vault import PIIVaultPort
 from sovereign_rag.ports.vector_store import VectorStorePort
 from sovereign_rag.services.fine_tuning import FineTuningService
 from sovereign_rag.services.ingestion import IngestionService
@@ -56,6 +57,7 @@ class Container:
     retrieval: RetrievalService
     rag: RAGService
     fine_tuning: FineTuningService | None
+    vault: PIIVaultPort
 
 
 def build_embedder(settings: Settings) -> EmbeddingPort:
@@ -125,6 +127,12 @@ def build_reranker(settings: Settings) -> RerankerPort | None:
     return None
 
 
+def build_vault(settings: Settings) -> PIIVaultPort:
+    from sovereign_rag.adapters.pii_vault import InMemoryPIIVault
+
+    return InMemoryPIIVault(secret=settings.pii_vault_secret)
+
+
 def build_principals(settings: Settings) -> PrincipalResolverPort:
     if settings.auth_provider is AuthProvider.OIDC:
         from sovereign_rag.adapters.oidc_principals import OidcPrincipalResolver
@@ -180,9 +188,10 @@ def build_container(settings: Settings) -> Container:
     llm = build_llm(settings)
     tracer = build_tracer(settings)
 
-    ingestion = IngestionService(embedder, store, lexical, settings)
+    vault = build_vault(settings)
+    ingestion = IngestionService(embedder, store, lexical, settings, vault)
     retrieval = RetrievalService(embedder, store, lexical, settings, reranker)
-    rag = RAGService(llm, retrieval, guardrail, audit, settings, tracer)
+    rag = RAGService(llm, retrieval, guardrail, audit, settings, tracer, vault)
     fine_tuner = build_fine_tuner(settings)
     fine_tuning = (
         FineTuningService(fine_tuner, audit, settings, tracer) if fine_tuner is not None else None
@@ -201,6 +210,7 @@ def build_container(settings: Settings) -> Container:
         retrieval=retrieval,
         rag=rag,
         fine_tuning=fine_tuning,
+        vault=vault,
     )
 
 

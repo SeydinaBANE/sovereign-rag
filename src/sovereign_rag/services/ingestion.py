@@ -7,6 +7,7 @@ from sovereign_rag.domain.exceptions import EmptyCorpusError
 from sovereign_rag.domain.models import Chunk, Document, EmbeddedChunk
 from sovereign_rag.ports.embeddings import EmbeddingPort
 from sovereign_rag.ports.lexical import LexicalIndexPort
+from sovereign_rag.ports.vault import PIIVaultPort
 from sovereign_rag.ports.vector_store import VectorStorePort
 from sovereign_rag.services.chunking import chunk_text
 
@@ -18,11 +19,13 @@ class IngestionService:
         store: VectorStorePort,
         lexical: LexicalIndexPort,
         settings: Settings,
+        vault: PIIVaultPort | None = None,
     ) -> None:
         self._embedder = embedder
         self._store = store
         self._lexical = lexical
         self._settings = settings
+        self._vault = vault
 
     def ingest(self, documents: list[Document], tenant_id: str | None = None) -> int:
         if not documents:
@@ -45,9 +48,9 @@ class IngestionService:
         chunks: list[Chunk] = []
         for document in documents:
             ensure_allowed(document.region, allowed)
-            masked, _ = pii.mask(document.text)
+            sanitized = self._sanitize(document.text, tenant_id)
             pieces = chunk_text(
-                masked,
+                sanitized,
                 self._settings.chunk_size,
                 self._settings.chunk_overlap,
             )
@@ -65,3 +68,9 @@ class IngestionService:
                     )
                 )
         return chunks
+
+    def _sanitize(self, text: str, tenant_id: str) -> str:
+        if self._settings.pii_vault_on_ingest and self._vault is not None:
+            return self._vault.tokenize(text, tenant_id).text
+        masked, _ = pii.mask(text)
+        return masked
