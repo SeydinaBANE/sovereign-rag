@@ -43,6 +43,13 @@ the HPA, a PodDisruptionBudget, TLS ingress, and the bundled persistent Qdrant.
 **Never** put secrets in `config` (it becomes a ConfigMap). Prefer `secrets.existingSecret` referencing
 a Secret managed by your secrets operator (e.g. External Secrets, Vault).
 
+## Container image
+
+The chart points at `ghcr.io/seydinabane/sovereign-rag` (tag defaults to the chart `appVersion`).
+Images are built multi-arch (`linux/amd64`, `linux/arm64`) and pushed to GHCR by the
+`Publish image` workflow on every `v*.*.*` tag / published release (or manually via
+**Actions → Publish image → Run workflow** with a tag).
+
 ## Notes
 
 - Probes hit `/healthz` (liveness + readiness); readiness reflects vector-store reachability.
