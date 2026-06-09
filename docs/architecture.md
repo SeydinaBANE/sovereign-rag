@@ -77,4 +77,6 @@ and emits a trace span. Provider selected by `SRAG_FINE_TUNING_PROVIDER` (`none|
 - Qdrant, Langfuse, Postgres run as containers on managed Kubernetes (EU region).
 - Mistral via Mistral La Plateforme (FR) or self-hosted `vLLM` for full on-prem.
 - Embeddings local (`bge-m3` via `fastembed`) when data must never leave the cluster.
-- A Helm chart is on the backlog (see `TODO.mmd`).
+- A Helm chart (`deploy/helm/sovereign-rag`) deploys the API with EU region pinning, optional
+  self-hosted Qdrant, HPA, TLS ingress and secret management; OVHcloud/Outscale overlays included
+  (see `docs/deployment.md`).

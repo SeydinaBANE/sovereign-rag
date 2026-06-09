@@ -1,0 +1,53 @@
+# Outscale (SecNumCloud-qualified, EU) Kubernetes overlay.
+# helm upgrade --install srag deploy/helm/sovereign-rag -f deploy/helm/sovereign-rag/values-outscale.yaml
+replicaCount: 3
+
+# Pin to an Outscale EU region for data residency / sovereignty.
+nodeSelector:
+  topology.kubernetes.io/region: cloudgouv-eu-west-1
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 8
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: sovereign-rag.cloudgouv.example.eu
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: sovereign-rag-tls
+      hosts:
+        - sovereign-rag.cloudgouv.example.eu
+
+config:
+  SRAG_LLM_PROVIDER: mistral
+  SRAG_EMBEDDING_PROVIDER: local
+  SRAG_VECTOR_PROVIDER: qdrant
+  SRAG_AUTH_ENABLED: "true"
+  SRAG_AUTH_PROVIDER: oidc
+  SRAG_ALLOWED_REGIONS: eu-west
+  SRAG_DEFAULT_REGION: eu-west
+  SRAG_PII_POLICY: mask
+  SRAG_FINE_TUNING_PROVIDER: none
+  SRAG_LANGFUSE_ENABLED: "true"
+
+secrets:
+  existingSecret: sovereign-rag-secrets
+
+qdrant:
+  enabled: true
+  persistence:
+    enabled: true
+    size: 20Gi
+    storageClassName: bsu-gp2

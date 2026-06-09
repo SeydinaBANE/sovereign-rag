@@ -1,0 +1,19 @@
+apiVersion: v2
+name: sovereign-rag
+description: Sovereign, compliance-by-design RAG accelerator (FastAPI + Qdrant) for EU managed Kubernetes (OVHcloud / Outscale).
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/SeydinaBANE/sovereign-rag
+sources:
+  - https://github.com/SeydinaBANE/sovereign-rag
+keywords:
+  - rag
+  - llm
+  - mistral
+  - qdrant
+  - sovereign
+  - gdpr
+  - ai-act
+maintainers:
+  - name: Sovereign RAG

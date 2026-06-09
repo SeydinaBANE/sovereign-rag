@@ -1,4 +1,6 @@
-.PHONY: install lint format typecheck test cov run demo up down precommit
+.PHONY: install lint format typecheck test cov run demo up down precommit helm-lint helm-template
+
+HELM_CHART := deploy/helm/sovereign-rag
 
 install:
 	uv sync --extra dev || uv pip install -e ".[dev]"
@@ -33,3 +35,9 @@ down:
 
 precommit:
 	uv run pre-commit run --all-files
+
+helm-lint:
+	helm lint $(HELM_CHART)
+
+helm-template:
+	helm template srag $(HELM_CHART)
