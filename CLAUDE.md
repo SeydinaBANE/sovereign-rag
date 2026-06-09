@@ -36,6 +36,10 @@ uv run pytest -k "tenant"                                       # by keyword
 
 Before returning code, the global rule applies: `make lint typecheck test` must all be green.
 
+Helm chart (`deploy/helm/sovereign-rag`, deploys API + optional Qdrant to EU K8s) — validate with
+`make helm-lint` and `make helm-template` (requires `helm`); CI also lints/renders it. EU overlays:
+`values-ovhcloud.yaml`, `values-outscale.yaml`. See `docs/deployment.md`.
+
 ## Architecture (the big picture)
 
 Dependency direction is strictly inward — **domain depends on nothing**:
@@ -58,8 +62,16 @@ api (FastAPI routers) → services → ports (Protocol) ← adapters (Mistral/Qd
 - **`compliance/`** — cross-cutting: `pii` (mask/refuse/allow), `audit` (append-only **hash-chained**
   log, no DB), `data_residency` (region filtering enforced at retrieval, not just config), `model_card`.
 - **`observability/`** — `tracing` (Langfuse/OTel spans) and `evals` (automated eval scores).
-- **`api/`** — FastAPI app, routers (`ingest`, `query`, `compliance`, `fine_tuning`, `health`), DTO
-  `schemas.py`, and `security.py` (API-key → `Principal` resolution as a FastAPI dependency).
+- **`api/`** — FastAPI app, routers (`ingest`, `query`, `compliance`, `fine_tuning`, `pii`, `health`),
+  DTO `schemas.py`, and `security.py` (API-key → `Principal` resolution as a FastAPI dependency).
+
+### Reversible PII vault (`services` integration, `ports/vault.py`)
+
+`PIIVaultPort` (`InMemoryPIIVault`: deterministic per-tenant tokens, Fernet-encrypted values). Gated by
+`SRAG_PII_VAULT_ON_INGEST` (default off): when on, `IngestionService` tokenizes PII instead of
+destructively masking, and `RAGService` detokenizes the answer + citations for the authorized principal
+(audited). Also exposed as `/pii/tokenize` (perm `ingest`) and `/pii/detokenize` (perm `manage`), both
+tenant-scoped and audited.
 
 ### Fine-tuning (`services/fine_tuning.py`, `ports/fine_tuning.py`)
 
@@ -92,10 +104,16 @@ Defaults run fully offline: `SRAG_LLM_PROVIDER=fake`, `SRAG_VECTOR_PROVIDER=memo
 `SRAG_EMBEDDING_PROVIDER=fake`, `SRAG_AUTH_ENABLED=false`. Provider enums live in `config.py`.
 
 - **Auth off** → every request is a single local `admin` principal on `SRAG_DEFAULT_TENANT`.
-- **Auth on** → API key (header `x-api-key` or `Authorization: Bearer`) resolves to a `Principal`;
-  keys are configured as JSON in `SRAG_API_KEYS`. Roles: `admin | editor | viewer`
-  (permission matrix in `domain/access.py`). **Tenant isolation is a hard filter** at every store
-  access — tenants can never read each other's data; preserve this when touching retrieval/ingestion.
+- **Auth on** → resolved via the pluggable `PrincipalResolverPort` (selected by `SRAG_AUTH_PROVIDER`):
+  - `static` → API key (header `x-api-key` or `Authorization: Bearer`) matched against JSON
+    `SRAG_API_KEYS` (`StaticPrincipalResolver`).
+  - `oidc` → `Authorization: Bearer <JWT>` validated by `OidcPrincipalResolver` (issuer JWKS for
+    RS256 or `SRAG_OIDC_HS256_SECRET` for HS256); claims mapped to tenant/roles via
+    `SRAG_OIDC_*_CLAIM` (dotted paths supported, e.g. Keycloak `realm_access.roles`). Invalid/expired
+    tokens → 401. Wire new providers in `build_principals` (`container.py`).
+  - Roles: `admin | editor | viewer` (permission matrix in `domain/access.py`). **Tenant isolation is
+    a hard filter** at every store access — tenants can never read each other's data; preserve this
+    when touching retrieval/ingestion.
 - **Hybrid on Qdrant**: with `SRAG_VECTOR_PROVIDER=qdrant` + `SRAG_SPARSE_PROVIDER=fastembed`, sparse
   vectors are Qdrant-native (one collection, named dense + sparse vectors — fully persistent). With
   `memory`, lexical is the in-process BM25 index (`adapters/bm25.py`).

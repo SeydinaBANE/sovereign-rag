@@ -19,7 +19,9 @@ so providers are swappable and nothing is locked to a non-sovereign vendor.
 | LLM fine-tuning (LoRA: Mistral / on-prem) | `services/fine_tuning.py`, `ports/fine_tuning.py`, `adapters/mistral_fine_tuning.py`, `adapters/local_lora.py` |
 | Observability / MLOps | `observability/tracing.py`, `observability/evals.py` |
 | Security & guardrails | `adapters/presidio_guardrail.py`, `services/rag.py` |
+| Reversible PII vault (tokenize/detokenize) | `ports/vault.py`, `adapters/pii_vault.py`, `api/routers/pii.py` |
 | RBAC + multi-tenant isolation | `domain/access.py`, `services/access_control.py`, `api/security.py` |
+| Auth providers (API key / JWT-OIDC) | `ports/auth.py`, `adapters/principals.py`, `adapters/oidc_principals.py` |
 | GDPR / AI Act / Data Act | `compliance/` + `docs/compliance/ai-act-mapping.md` |
 | Sovereign cloud | `memory`/`qdrant` stores, local embeddings, `docker-compose.yml` |
 | Reusable accelerator | hexagonal layering, ports/adapters, typed everywhere |
@@ -55,7 +57,8 @@ make run           # http://localhost:8000/docs
 ```
 
 Key endpoints: `POST /ingest`, `POST /query`, `GET /compliance/card`,
-`POST /fine-tuning/jobs` (admin), `GET /healthz`.
+`POST /fine-tuning/jobs` (admin), `POST /pii/tokenize`, `POST /pii/detokenize` (admin),
+`GET /healthz`.
 
 ## Full sovereign stack (Docker)
 
@@ -63,6 +66,16 @@ Key endpoints: `POST /ingest`, `POST /query`, `GET /compliance/card`,
 cp .env.example .env   # set SRAG_VECTOR_PROVIDER=qdrant, SRAG_LLM_PROVIDER=mistral, keys...
 make up                # api + qdrant + langfuse + postgres
 ```
+
+## Sovereign Kubernetes (Helm — OVHcloud / Outscale)
+
+```bash
+helm upgrade --install srag deploy/helm/sovereign-rag -n sovereign-rag --create-namespace \
+  -f deploy/helm/sovereign-rag/values-ovhcloud.yaml   # or values-outscale.yaml
+```
+
+EU region pinning, optional self-hosted Qdrant, HPA, TLS ingress and secret management.
+See [`docs/deployment.md`](docs/deployment.md).
 
 ## Configuration
 

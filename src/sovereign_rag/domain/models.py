@@ -27,6 +27,16 @@ class PIIFinding(BaseModel):
     end: int
 
 
+class PIIToken(BaseModel):
+    token: str
+    entity_type: PIIEntityType
+
+
+class TokenizationResult(BaseModel):
+    text: str
+    tokens: list[PIIToken] = Field(default_factory=list)
+
+
 class Document(BaseModel):
     id: str
     text: str

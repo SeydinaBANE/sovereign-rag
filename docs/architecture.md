@@ -31,9 +31,12 @@ cross-cutting:  compliance/ (pii · audit · data_residency · model_card)
 
 ## Request flow — `POST /query`
 
-0. **Authenticate + authorize** — resolve the API key to a `Principal` (tenant + roles);
-   enforce the `query` permission. Every downstream store access is scoped to the principal's
-   tenant (hard isolation filter), so tenants can never read each other's data.
+0. **Authenticate + authorize** — resolve the credential to a `Principal` (tenant + roles) via the
+   pluggable `PrincipalResolverPort`: static API keys (`SRAG_AUTH_PROVIDER=static`) or **JWT/OIDC**
+   bearer tokens (`oidc`, validated against the issuer JWKS for RS256 or a shared secret for HS256,
+   with claims mapped onto tenant + RBAC). Enforce the `query` permission. Every downstream store
+   access is scoped to the principal's tenant (hard isolation filter), so tenants can never read
+   each other's data.
 1. **Guardrail (input)** — scan for prompt injection + PII (policy: mask / refuse / allow).
 2. **Embed** the (sanitized) query via `EmbeddingPort`.
 3. **Hybrid retrieve** — semantic candidates via `VectorStorePort` + lexical candidates via
@@ -68,10 +71,16 @@ and emits a trace span. Provider selected by `SRAG_FINE_TUNING_PROVIDER` (`none|
   `mistralai`, `qdrant-client`, or `presidio` installed.
 - **Append-only hash-chained audit log** → tamper-evidence for AI Act traceability without a DB.
 - **Region metadata on every chunk** → data-residency enforced at retrieval time, not just config.
+- **Reversible PII vault** (`PIIVaultPort`) → with `SRAG_PII_VAULT_ON_INGEST`, ingestion tokenizes
+  PII into deterministic, tenant-scoped tokens (values encrypted at rest) instead of destructively
+  masking; the vector store and LLM only ever see tokens, and answers/citations are detokenized for
+  the authorized principal (audited). Also exposed as audited `/pii/tokenize` + `/pii/detokenize`.
 
 ## Sovereign deployment (OVHcloud / Outscale)
 
 - Qdrant, Langfuse, Postgres run as containers on managed Kubernetes (EU region).
 - Mistral via Mistral La Plateforme (FR) or self-hosted `vLLM` for full on-prem.
 - Embeddings local (`bge-m3` via `fastembed`) when data must never leave the cluster.
-- A Helm chart is on the backlog (see `TODO.mmd`).
+- A Helm chart (`deploy/helm/sovereign-rag`) deploys the API with EU region pinning, optional
+  self-hosted Qdrant, HPA, TLS ingress and secret management; OVHcloud/Outscale overlays included
+  (see `docs/deployment.md`).

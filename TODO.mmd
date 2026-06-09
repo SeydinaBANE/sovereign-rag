@@ -64,10 +64,22 @@ graph TD
         F1d[Tenant-scoped audited jobs API]:::done
     end
 
-    subgraph BACKLOG[Backlog - future iterations]
-        F4[Helm chart OVHcloud / Outscale]:::todo
-        F5[PII reversible vault]:::todo
-        F7[JWT / OIDC auth provider]:::todo
+    subgraph P10[Phase 10 - Enterprise auth]
+        F7a[AuthProvider switch + OIDC settings]:::done
+        F7b[JWT/OIDC resolver - JWKS RS256 + HS256]:::done
+        F7c[Claim mapping to tenant + RBAC]:::done
     end
 
-    P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7 --> P8 --> P9 --> BACKLOG
+    subgraph P11[Phase 11 - Sovereign deployment]
+        F4a[Helm chart - API deploy/svc/ingress/HPA]:::done
+        F4b[Optional self-hosted Qdrant StatefulSet]:::done
+        F4c[OVHcloud / Outscale EU overlays + CI lint]:::done
+    end
+
+    subgraph P12[Phase 12 - Reversible PII vault]
+        F5a[PIIVaultPort + encrypted in-memory vault]:::done
+        F5b[Tokenize at ingest + detokenize in RAG]:::done
+        F5c[Audited tenant-scoped tokenize/detokenize API]:::done
+    end
+
+    P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7 --> P8 --> P9 --> P10 --> P11 --> P12
