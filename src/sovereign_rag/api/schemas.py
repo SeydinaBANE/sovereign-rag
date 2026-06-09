@@ -35,3 +35,19 @@ class HealthResponse(BaseModel):
 class CardRequest(BaseModel):
     system_name: str = "sovereign-rag-demo"
     purpose: str = "Enterprise document question answering assistant (RAG)"
+
+
+class ChatMessageSchema(BaseModel):
+    role: str
+    content: str
+
+
+class TrainingExampleSchema(BaseModel):
+    messages: list[ChatMessageSchema]
+
+
+class FineTuningRequest(BaseModel):
+    examples: list[TrainingExampleSchema]
+    epochs: int | None = None
+    learning_rate: float | None = None
+    suffix: str | None = None

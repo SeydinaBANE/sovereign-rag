@@ -31,14 +31,34 @@ cross-cutting:  compliance/ (pii · audit · data_residency · model_card)
 
 ## Request flow — `POST /query`
 
+0. **Authenticate + authorize** — resolve the API key to a `Principal` (tenant + roles);
+   enforce the `query` permission. Every downstream store access is scoped to the principal's
+   tenant (hard isolation filter), so tenants can never read each other's data.
 1. **Guardrail (input)** — scan for prompt injection + PII (policy: mask / refuse / allow).
 2. **Embed** the (sanitized) query via `EmbeddingPort`.
-3. **Retrieve** top-k chunks via `VectorStorePort`, filtered by allowed regions and `min_score`.
-4. **Ground** — build a citation-constrained prompt; if no chunk passes `min_score`, **refuse**.
-5. **Generate** via `LLMPort`.
-6. **Guardrail (output)** — scan generated answer.
-7. **Audit** — append a hash-chained record (query hash, sources, region, decision).
-8. **Trace** — emit span (latency, tokens, cost, eval scores) to Langfuse/OTel.
+3. **Hybrid retrieve** — semantic candidates via `VectorStorePort` + lexical candidates via
+   `LexicalIndexPort`, both tenant- and region-filtered. A semantic relevance gate (`min_score`
+   on the vector cosine) drives the refusal decision; in `vector` mode only the dense leg is used.
+   Lexical backend: in-memory BM25 by default, or **Qdrant-native sparse vectors** (one collection
+   with named dense + sparse vectors) when running on Qdrant — fully persistent, no in-process index.
+4. **Fuse + rerank** — merge the two rankings with Reciprocal Rank Fusion, then reorder the top
+   candidates via `RerankerPort` (lexical by default, optional cross-encoder).
+5. **Ground** — build a citation-constrained prompt; if the gate fails, **refuse**.
+6. **Generate** via `LLMPort`.
+7. **Guardrail (output)** — scan generated answer.
+8. **Audit** — append a hash-chained record (query hash, sources, region, decision).
+9. **Trace** — emit span (latency, tokens, cost, eval scores) to Langfuse/OTel.
+
+## Fine-tuning workstream — `POST /fine-tuning/jobs`
+
+LoRA fine-tuning of an open-source LLM sits behind `FineTuningPort`, mirroring the rest of the
+hexagon. Three adapters: deterministic in-memory **fake** (default, offline), **Mistral La
+Plateforme** (sovereign EU managed LoRA), and **on-prem local LoRA/PEFT** (`transformers`/`peft`/
+`trl`, imported lazily — data never leaves the cluster). `FineTuningService` enforces the `manage`
+permission (admin), validates the dataset, **scopes every job to the principal's tenant** (cross-tenant
+reads return *not found*), appends a hash-chained audit record (`finetune:create` / `finetune:cancel`),
+and emits a trace span. Provider selected by `SRAG_FINE_TUNING_PROVIDER` (`none|fake|mistral|local`);
+`none` disables the endpoints (503).
 
 ## Key design decisions (ADRs, condensed)
 

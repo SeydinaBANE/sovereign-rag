@@ -24,6 +24,8 @@ class FileAuditLog:
         sources: list[str],
         region: str,
         decision: str,
+        tenant_id: str = "default",
+        subject: str = "system",
     ) -> AuditRecord:
         prev_hash = self._last_hash()
         timestamp = datetime.now(UTC).isoformat()
@@ -32,6 +34,8 @@ class FileAuditLog:
             "query_hash": query_hash,
             "sources": sources,
             "region": region,
+            "tenant_id": tenant_id,
+            "subject": subject,
             "decision": decision,
             "prev_hash": prev_hash,
         }
@@ -52,6 +56,8 @@ class FileAuditLog:
                     "query_hash": record.query_hash,
                     "sources": record.sources,
                     "region": record.region,
+                    "tenant_id": record.tenant_id,
+                    "subject": record.subject,
                     "decision": record.decision,
                     "prev_hash": record.prev_hash,
                 }

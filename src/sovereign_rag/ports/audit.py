@@ -13,6 +13,8 @@ class AuditPort(Protocol):
         sources: list[str],
         region: str,
         decision: str,
+        tenant_id: str = "default",
+        subject: str = "system",
     ) -> AuditRecord: ...
 
     def verify_chain(self) -> bool: ...

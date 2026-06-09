@@ -6,6 +6,7 @@ from sovereign_rag.config import Settings
 from sovereign_rag.domain.exceptions import EmptyCorpusError
 from sovereign_rag.domain.models import Chunk, Document, EmbeddedChunk
 from sovereign_rag.ports.embeddings import EmbeddingPort
+from sovereign_rag.ports.lexical import LexicalIndexPort
 from sovereign_rag.ports.vector_store import VectorStorePort
 from sovereign_rag.services.chunking import chunk_text
 
@@ -15,16 +16,19 @@ class IngestionService:
         self,
         embedder: EmbeddingPort,
         store: VectorStorePort,
+        lexical: LexicalIndexPort,
         settings: Settings,
     ) -> None:
         self._embedder = embedder
         self._store = store
+        self._lexical = lexical
         self._settings = settings
 
-    def ingest(self, documents: list[Document]) -> int:
+    def ingest(self, documents: list[Document], tenant_id: str | None = None) -> int:
         if not documents:
             raise EmptyCorpusError("No documents provided for ingestion.")
-        chunks = self._build_chunks(documents)
+        tenant = tenant_id or self._settings.default_tenant
+        chunks = self._build_chunks(documents, tenant)
         if not chunks:
             raise EmptyCorpusError("Documents produced no usable text after processing.")
         embeddings = self._embedder.embed([chunk.text for chunk in chunks])
@@ -33,9 +37,10 @@ class IngestionService:
             for chunk, embedding in zip(chunks, embeddings, strict=True)
         ]
         self._store.upsert(items)
+        self._lexical.index(chunks)
         return len(items)
 
-    def _build_chunks(self, documents: list[Document]) -> list[Chunk]:
+    def _build_chunks(self, documents: list[Document], tenant_id: str) -> list[Chunk]:
         allowed = self._settings.allowed_regions
         chunks: list[Chunk] = []
         for document in documents:
@@ -49,11 +54,12 @@ class IngestionService:
             for position, piece in enumerate(pieces):
                 chunks.append(
                     Chunk(
-                        id=f"{document.id}:{position}",
+                        id=f"{tenant_id}:{document.id}:{position}",
                         document_id=document.id,
                         text=piece,
                         source=document.source,
                         region=document.region,
+                        tenant_id=tenant_id,
                         position=position,
                         metadata=document.metadata,
                     )

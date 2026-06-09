@@ -14,8 +14,12 @@ so providers are swappable and nothing is locked to a non-sovereign vendor.
 |---|---|
 | LLM orchestration | `services/rag.py`, `ports/llm.py`, `adapters/mistral_llm.py` |
 | Vector search | `services/retrieval.py`, `adapters/qdrant_store.py` |
+| Hybrid search (BM25 + RRF + rerank) | `adapters/bm25.py`, `services/fusion.py`, `adapters/*_reranker.py` |
+| Persistent hybrid (Qdrant sparse vectors) | `adapters/qdrant_hybrid.py`, `adapters/sparse_embeddings.py` |
+| LLM fine-tuning (LoRA: Mistral / on-prem) | `services/fine_tuning.py`, `ports/fine_tuning.py`, `adapters/mistral_fine_tuning.py`, `adapters/local_lora.py` |
 | Observability / MLOps | `observability/tracing.py`, `observability/evals.py` |
 | Security & guardrails | `adapters/presidio_guardrail.py`, `services/rag.py` |
+| RBAC + multi-tenant isolation | `domain/access.py`, `services/access_control.py`, `api/security.py` |
 | GDPR / AI Act / Data Act | `compliance/` + `docs/compliance/ai-act-mapping.md` |
 | Sovereign cloud | `memory`/`qdrant` stores, local embeddings, `docker-compose.yml` |
 | Reusable accelerator | hexagonal layering, ports/adapters, typed everywhere |
@@ -50,7 +54,8 @@ make lint typecheck
 make run           # http://localhost:8000/docs
 ```
 
-Key endpoints: `POST /ingest`, `POST /query`, `GET /compliance/card`, `GET /healthz`.
+Key endpoints: `POST /ingest`, `POST /query`, `GET /compliance/card`,
+`POST /fine-tuning/jobs` (admin), `GET /healthz`.
 
 ## Full sovereign stack (Docker)
 

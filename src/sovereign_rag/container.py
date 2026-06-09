@@ -3,22 +3,38 @@ from __future__ import annotations
 from dataclasses import dataclass
 from functools import lru_cache
 
-from sovereign_rag.adapters.fakes import FakeEmbedding, FakeLLM, InMemoryVectorStore
+from sovereign_rag.adapters.bm25 import BM25Index
+from sovereign_rag.adapters.fakes import (
+    FakeEmbedding,
+    FakeFineTuner,
+    FakeLLM,
+    InMemoryVectorStore,
+)
+from sovereign_rag.adapters.lexical_reranker import LexicalReranker
+from sovereign_rag.adapters.principals import StaticPrincipalResolver
 from sovereign_rag.adapters.regex_guardrail import RegexGuardrail
 from sovereign_rag.compliance.audit import FileAuditLog
 from sovereign_rag.config import (
     EmbeddingProvider,
+    FineTuningProvider,
     LLMProvider,
+    RerankerProvider,
     Settings,
+    SparseProvider,
     VectorProvider,
     get_settings,
 )
 from sovereign_rag.observability.tracing import Tracer
 from sovereign_rag.ports.audit import AuditPort
+from sovereign_rag.ports.auth import PrincipalResolverPort
 from sovereign_rag.ports.embeddings import EmbeddingPort
+from sovereign_rag.ports.fine_tuning import FineTuningPort
 from sovereign_rag.ports.guardrail import GuardrailPort
+from sovereign_rag.ports.lexical import LexicalIndexPort
 from sovereign_rag.ports.llm import LLMPort
+from sovereign_rag.ports.reranker import RerankerPort
 from sovereign_rag.ports.vector_store import VectorStorePort
+from sovereign_rag.services.fine_tuning import FineTuningService
 from sovereign_rag.services.ingestion import IngestionService
 from sovereign_rag.services.rag import RAGService
 from sovereign_rag.services.retrieval import RetrievalService
@@ -29,12 +45,16 @@ class Container:
     settings: Settings
     embedder: EmbeddingPort
     store: VectorStorePort
+    lexical: LexicalIndexPort
+    reranker: RerankerPort | None
+    principals: PrincipalResolverPort
     guardrail: GuardrailPort
     audit: AuditPort
     llm: LLMPort
     ingestion: IngestionService
     retrieval: RetrievalService
     rag: RAGService
+    fine_tuning: FineTuningService | None
 
 
 def build_embedder(settings: Settings) -> EmbeddingPort:
@@ -53,16 +73,32 @@ def build_embedder(settings: Settings) -> EmbeddingPort:
     return FakeEmbedding(dim=settings.embedding_dim)
 
 
-def build_store(settings: Settings, embedder: EmbeddingPort) -> VectorStorePort:
+def build_stores(
+    settings: Settings,
+    embedder: EmbeddingPort,
+) -> tuple[VectorStorePort, LexicalIndexPort]:
     if settings.vector_provider is VectorProvider.QDRANT:
+        if settings.sparse_provider is SparseProvider.FASTEMBED:
+            from sovereign_rag.adapters.qdrant_hybrid import QdrantHybridStore
+            from sovereign_rag.adapters.sparse_embeddings import FastEmbedSparse
+
+            hybrid = QdrantHybridStore(
+                url=settings.qdrant_url,
+                collection=settings.qdrant_collection,
+                dim=embedder.dim,
+                sparse=FastEmbedSparse(model=settings.sparse_model),
+            )
+            return hybrid, hybrid.lexical()
+
         from sovereign_rag.adapters.qdrant_store import QdrantStore
 
-        return QdrantStore(
+        store = QdrantStore(
             url=settings.qdrant_url,
             collection=settings.qdrant_collection,
             dim=embedder.dim,
         )
-    return InMemoryVectorStore()
+        return store, BM25Index()
+    return InMemoryVectorStore(), BM25Index()
 
 
 def build_llm(settings: Settings) -> LLMPort:
@@ -76,6 +112,30 @@ def build_llm(settings: Settings) -> LLMPort:
             max_tokens=settings.llm_max_tokens,
         )
     return FakeLLM(model=settings.llm_model)
+
+
+def build_reranker(settings: Settings) -> RerankerPort | None:
+    if settings.reranker_provider is RerankerProvider.LEXICAL:
+        return LexicalReranker()
+    if settings.reranker_provider is RerankerProvider.CROSS_ENCODER:
+        from sovereign_rag.adapters.cross_encoder_reranker import CrossEncoderReranker
+
+        return CrossEncoderReranker(model=settings.cross_encoder_model)
+    return None
+
+
+def build_fine_tuner(settings: Settings) -> FineTuningPort | None:
+    if settings.fine_tuning_provider is FineTuningProvider.MISTRAL:
+        from sovereign_rag.adapters.mistral_fine_tuning import MistralFineTuner
+
+        return MistralFineTuner(api_key=settings.mistral_api_key)
+    if settings.fine_tuning_provider is FineTuningProvider.LOCAL:
+        from sovereign_rag.adapters.local_lora import LocalLoRAFineTuner
+
+        return LocalLoRAFineTuner(output_dir=settings.fine_tuning_output_dir)
+    if settings.fine_tuning_provider is FineTuningProvider.FAKE:
+        return FakeFineTuner()
+    return None
 
 
 def build_tracer(settings: Settings) -> Tracer:
@@ -93,25 +153,35 @@ def build_tracer(settings: Settings) -> Tracer:
 
 def build_container(settings: Settings) -> Container:
     embedder = build_embedder(settings)
-    store = build_store(settings, embedder)
+    store, lexical = build_stores(settings, embedder)
+    reranker = build_reranker(settings)
+    principals: PrincipalResolverPort = StaticPrincipalResolver(settings.api_keys)
     guardrail: GuardrailPort = RegexGuardrail(pii_policy=settings.pii_policy)
     audit: AuditPort = FileAuditLog(settings.audit_path)
     llm = build_llm(settings)
     tracer = build_tracer(settings)
 
-    ingestion = IngestionService(embedder, store, settings)
-    retrieval = RetrievalService(embedder, store, settings)
+    ingestion = IngestionService(embedder, store, lexical, settings)
+    retrieval = RetrievalService(embedder, store, lexical, settings, reranker)
     rag = RAGService(llm, retrieval, guardrail, audit, settings, tracer)
+    fine_tuner = build_fine_tuner(settings)
+    fine_tuning = (
+        FineTuningService(fine_tuner, audit, settings, tracer) if fine_tuner is not None else None
+    )
     return Container(
         settings=settings,
         embedder=embedder,
         store=store,
+        lexical=lexical,
+        reranker=reranker,
+        principals=principals,
         guardrail=guardrail,
         audit=audit,
         llm=llm,
         ingestion=ingestion,
         retrieval=retrieval,
         rag=rag,
+        fine_tuning=fine_tuning,
     )
 
 

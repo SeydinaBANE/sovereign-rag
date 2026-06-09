@@ -32,6 +32,7 @@ class Document(BaseModel):
     text: str
     source: str
     region: str
+    tenant_id: str = "default"
     metadata: dict[str, str] = Field(default_factory=dict)
 
 
@@ -41,6 +42,7 @@ class Chunk(BaseModel):
     text: str
     source: str
     region: str
+    tenant_id: str = "default"
     position: int
     metadata: dict[str, str] = Field(default_factory=dict)
 
@@ -48,6 +50,11 @@ class Chunk(BaseModel):
 class EmbeddedChunk(BaseModel):
     chunk: Chunk
     embedding: list[float]
+
+
+class SparseVector(BaseModel):
+    indices: list[int]
+    values: list[float]
 
 
 class ScoredChunk(BaseModel):
@@ -88,6 +95,8 @@ class AuditRecord(BaseModel):
     query_hash: str
     sources: list[str]
     region: str
+    tenant_id: str = "default"
+    subject: str = "system"
     decision: str
     prev_hash: str
     hash: str
@@ -103,3 +112,44 @@ class ModelCard(BaseModel):
     regions: list[str]
     mitigations: list[str]
     eval_scores: dict[str, float] = Field(default_factory=dict)
+
+
+class FineTuningStatus(StrEnum):
+    PENDING = "pending"
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+
+class TrainingExample(BaseModel):
+    messages: list[ChatMessage]
+
+
+class FineTuningHyperParams(BaseModel):
+    epochs: int = 3
+    learning_rate: float = 1e-4
+    suffix: str = "sovereign"
+
+
+class FineTuningSpec(BaseModel):
+    base_model: str
+    examples: list[TrainingExample]
+    hyperparams: FineTuningHyperParams = Field(default_factory=FineTuningHyperParams)
+    tenant_id: str = "default"
+
+
+class FineTuningJob(BaseModel):
+    id: str
+    base_model: str
+    status: FineTuningStatus
+    fine_tuned_model: str | None = None
+    tenant_id: str = "default"
+    created_at: str
+    hyperparams: FineTuningHyperParams
+    metrics: dict[str, float] = Field(default_factory=dict)

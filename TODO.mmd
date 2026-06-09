@@ -39,12 +39,35 @@ graph TD
         E4[unit + integration tests green]:::done
     end
 
-    subgraph BACKLOG[Backlog - future iterations]
-        F1[Fine-tuning provider - Project B]:::todo
-        F2[Hybrid search BM25 + reranker]:::todo
-        F3[RBAC / multi-tenant]:::todo
-        F4[Helm chart OVHcloud / Outscale]:::todo
-        F5[PII reversible vault]:::todo
+    subgraph P6[Phase 6 - Retrieval quality]
+        G1[BM25 lexical index]:::done
+        G2[Reciprocal Rank Fusion]:::done
+        G3[Lexical + cross-encoder reranker]:::done
     end
 
-    P1 --> P2 --> P3 --> P4 --> P5 --> BACKLOG
+    subgraph P7[Phase 7 - Access control]
+        H1[Roles + permissions RBAC]:::done
+        H2[Per-tenant isolation on all stores]:::done
+        H3[API-key auth + principal resolver]:::done
+    end
+
+    subgraph P8[Phase 8 - Persistent hybrid]
+        I1[Sparse embedding port + fastembed BM25]:::done
+        I2[Qdrant named dense + sparse vectors]:::done
+        I3[Qdrant sparse lexical view]:::done
+    end
+
+    subgraph P9[Phase 9 - Fine-tuning]
+        F1a[FineTuningPort + fake provider]:::done
+        F1b[Mistral La Plateforme LoRA adapter]:::done
+        F1c[On-prem local LoRA/PEFT adapter]:::done
+        F1d[Tenant-scoped audited jobs API]:::done
+    end
+
+    subgraph BACKLOG[Backlog - future iterations]
+        F4[Helm chart OVHcloud / Outscale]:::todo
+        F5[PII reversible vault]:::todo
+        F7[JWT / OIDC auth provider]:::todo
+    end
+
+    P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7 --> P8 --> P9 --> BACKLOG
