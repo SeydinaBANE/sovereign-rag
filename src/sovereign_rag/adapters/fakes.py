@@ -3,8 +3,17 @@ from __future__ import annotations
 import hashlib
 import math
 import re
+from datetime import UTC, datetime
 
-from sovereign_rag.domain.models import EmbeddedChunk, ScoredChunk, SparseVector
+from sovereign_rag.domain.exceptions import FineTuningJobNotFound
+from sovereign_rag.domain.models import (
+    EmbeddedChunk,
+    FineTuningJob,
+    FineTuningSpec,
+    FineTuningStatus,
+    ScoredChunk,
+    SparseVector,
+)
 from sovereign_rag.ports.llm import LLMResponse
 
 _WORD = re.compile(r"\w+", re.UNICODE)
@@ -111,6 +120,46 @@ class InMemoryVectorStore:
 
     def count(self) -> int:
         return len(self._items)
+
+
+class FakeFineTuner:
+    """Deterministic offline fine-tuning provider for tests and demos."""
+
+    def __init__(self) -> None:
+        self._jobs: dict[str, FineTuningJob] = {}
+        self._counter = 0
+
+    def create_job(self, spec: FineTuningSpec) -> FineTuningJob:
+        self._counter += 1
+        job_id = f"ftjob-fake-{self._counter:04d}"
+        suffix = spec.hyperparams.suffix or "custom"
+        job = FineTuningJob(
+            id=job_id,
+            base_model=spec.base_model,
+            status=FineTuningStatus.SUCCEEDED,
+            fine_tuned_model=f"{spec.base_model}:{suffix}",
+            tenant_id=spec.tenant_id,
+            created_at=datetime.now(UTC).isoformat(),
+            hyperparams=spec.hyperparams,
+            metrics={"train_examples": float(len(spec.examples)), "train_loss": 0.1},
+        )
+        self._jobs[job_id] = job
+        return job
+
+    def get_job(self, job_id: str) -> FineTuningJob:
+        job = self._jobs.get(job_id)
+        if job is None:
+            raise FineTuningJobNotFound(job_id)
+        return job
+
+    def list_jobs(self, tenant_id: str) -> list[FineTuningJob]:
+        return [job for job in self._jobs.values() if job.tenant_id == tenant_id]
+
+    def cancel_job(self, job_id: str) -> FineTuningJob:
+        job = self.get_job(job_id)
+        cancelled = job.model_copy(update={"status": FineTuningStatus.CANCELLED})
+        self._jobs[job_id] = cancelled
+        return cancelled
 
 
 def _cosine(left: list[float], right: list[float]) -> float:

@@ -57,11 +57,17 @@ graph TD
         I3[Qdrant sparse lexical view]:::done
     end
 
+    subgraph P9[Phase 9 - Fine-tuning]
+        F1a[FineTuningPort + fake provider]:::done
+        F1b[Mistral La Plateforme LoRA adapter]:::done
+        F1c[On-prem local LoRA/PEFT adapter]:::done
+        F1d[Tenant-scoped audited jobs API]:::done
+    end
+
     subgraph BACKLOG[Backlog - future iterations]
-        F1[Fine-tuning provider - Project B]:::todo
         F4[Helm chart OVHcloud / Outscale]:::todo
         F5[PII reversible vault]:::todo
         F7[JWT / OIDC auth provider]:::todo
     end
 
-    P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7 --> P8 --> BACKLOG
+    P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7 --> P8 --> P9 --> BACKLOG

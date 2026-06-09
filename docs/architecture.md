@@ -49,6 +49,17 @@ cross-cutting:  compliance/ (pii · audit · data_residency · model_card)
 8. **Audit** — append a hash-chained record (query hash, sources, region, decision).
 9. **Trace** — emit span (latency, tokens, cost, eval scores) to Langfuse/OTel.
 
+## Fine-tuning workstream — `POST /fine-tuning/jobs`
+
+LoRA fine-tuning of an open-source LLM sits behind `FineTuningPort`, mirroring the rest of the
+hexagon. Three adapters: deterministic in-memory **fake** (default, offline), **Mistral La
+Plateforme** (sovereign EU managed LoRA), and **on-prem local LoRA/PEFT** (`transformers`/`peft`/
+`trl`, imported lazily — data never leaves the cluster). `FineTuningService` enforces the `manage`
+permission (admin), validates the dataset, **scopes every job to the principal's tenant** (cross-tenant
+reads return *not found*), appends a hash-chained audit record (`finetune:create` / `finetune:cancel`),
+and emits a trace span. Provider selected by `SRAG_FINE_TUNING_PROVIDER` (`none|fake|mistral|local`);
+`none` disables the endpoints (503).
+
 ## Key design decisions (ADRs, condensed)
 
 - **Ports as `typing.Protocol`** rather than ABCs → structural typing, zero import coupling,
