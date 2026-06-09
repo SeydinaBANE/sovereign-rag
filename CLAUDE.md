@@ -92,10 +92,16 @@ Defaults run fully offline: `SRAG_LLM_PROVIDER=fake`, `SRAG_VECTOR_PROVIDER=memo
 `SRAG_EMBEDDING_PROVIDER=fake`, `SRAG_AUTH_ENABLED=false`. Provider enums live in `config.py`.
 
 - **Auth off** → every request is a single local `admin` principal on `SRAG_DEFAULT_TENANT`.
-- **Auth on** → API key (header `x-api-key` or `Authorization: Bearer`) resolves to a `Principal`;
-  keys are configured as JSON in `SRAG_API_KEYS`. Roles: `admin | editor | viewer`
-  (permission matrix in `domain/access.py`). **Tenant isolation is a hard filter** at every store
-  access — tenants can never read each other's data; preserve this when touching retrieval/ingestion.
+- **Auth on** → resolved via the pluggable `PrincipalResolverPort` (selected by `SRAG_AUTH_PROVIDER`):
+  - `static` → API key (header `x-api-key` or `Authorization: Bearer`) matched against JSON
+    `SRAG_API_KEYS` (`StaticPrincipalResolver`).
+  - `oidc` → `Authorization: Bearer <JWT>` validated by `OidcPrincipalResolver` (issuer JWKS for
+    RS256 or `SRAG_OIDC_HS256_SECRET` for HS256); claims mapped to tenant/roles via
+    `SRAG_OIDC_*_CLAIM` (dotted paths supported, e.g. Keycloak `realm_access.roles`). Invalid/expired
+    tokens → 401. Wire new providers in `build_principals` (`container.py`).
+  - Roles: `admin | editor | viewer` (permission matrix in `domain/access.py`). **Tenant isolation is
+    a hard filter** at every store access — tenants can never read each other's data; preserve this
+    when touching retrieval/ingestion.
 - **Hybrid on Qdrant**: with `SRAG_VECTOR_PROVIDER=qdrant` + `SRAG_SPARSE_PROVIDER=fastembed`, sparse
   vectors are Qdrant-native (one collection, named dense + sparse vectors — fully persistent). With
   `memory`, lexical is the in-process BM25 index (`adapters/bm25.py`).

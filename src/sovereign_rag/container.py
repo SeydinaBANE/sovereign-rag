@@ -15,6 +15,7 @@ from sovereign_rag.adapters.principals import StaticPrincipalResolver
 from sovereign_rag.adapters.regex_guardrail import RegexGuardrail
 from sovereign_rag.compliance.audit import FileAuditLog
 from sovereign_rag.config import (
+    AuthProvider,
     EmbeddingProvider,
     FineTuningProvider,
     LLMProvider,
@@ -124,6 +125,24 @@ def build_reranker(settings: Settings) -> RerankerPort | None:
     return None
 
 
+def build_principals(settings: Settings) -> PrincipalResolverPort:
+    if settings.auth_provider is AuthProvider.OIDC:
+        from sovereign_rag.adapters.oidc_principals import OidcPrincipalResolver
+
+        return OidcPrincipalResolver(
+            issuer=settings.oidc_issuer,
+            audience=settings.oidc_audience,
+            jwks_url=settings.oidc_jwks_url,
+            algorithms=settings.oidc_algorithms,
+            hs256_secret=settings.oidc_hs256_secret,
+            subject_claim=settings.oidc_subject_claim,
+            tenant_claim=settings.oidc_tenant_claim,
+            roles_claim=settings.oidc_roles_claim,
+            default_tenant=settings.default_tenant,
+        )
+    return StaticPrincipalResolver(settings.api_keys)
+
+
 def build_fine_tuner(settings: Settings) -> FineTuningPort | None:
     if settings.fine_tuning_provider is FineTuningProvider.MISTRAL:
         from sovereign_rag.adapters.mistral_fine_tuning import MistralFineTuner
@@ -155,7 +174,7 @@ def build_container(settings: Settings) -> Container:
     embedder = build_embedder(settings)
     store, lexical = build_stores(settings, embedder)
     reranker = build_reranker(settings)
-    principals: PrincipalResolverPort = StaticPrincipalResolver(settings.api_keys)
+    principals: PrincipalResolverPort = build_principals(settings)
     guardrail: GuardrailPort = RegexGuardrail(pii_policy=settings.pii_policy)
     audit: AuditPort = FileAuditLog(settings.audit_path)
     llm = build_llm(settings)

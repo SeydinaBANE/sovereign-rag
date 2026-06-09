@@ -64,10 +64,15 @@ graph TD
         F1d[Tenant-scoped audited jobs API]:::done
     end
 
+    subgraph P10[Phase 10 - Enterprise auth]
+        F7a[AuthProvider switch + OIDC settings]:::done
+        F7b[JWT/OIDC resolver - JWKS RS256 + HS256]:::done
+        F7c[Claim mapping to tenant + RBAC]:::done
+    end
+
     subgraph BACKLOG[Backlog - future iterations]
         F4[Helm chart OVHcloud / Outscale]:::todo
         F5[PII reversible vault]:::todo
-        F7[JWT / OIDC auth provider]:::todo
     end
 
-    P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7 --> P8 --> P9 --> BACKLOG
+    P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7 --> P8 --> P9 --> P10 --> BACKLOG
