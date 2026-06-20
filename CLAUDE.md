@@ -24,6 +24,7 @@ make typecheck    # mypy (strict)
 make format       # ruff format + ruff check --fix
 make up / down    # docker compose: api + qdrant + langfuse + postgres
 make precommit    # pre-commit run --all-files
+make load         # k6 load test against $BASE_URL (default http://localhost:8000)
 ```
 
 Run a single test:
@@ -39,6 +40,12 @@ Before returning code, the global rule applies: `make lint typecheck test` must 
 Helm chart (`deploy/helm/sovereign-rag`, deploys API + optional Qdrant to EU K8s) — validate with
 `make helm-lint` and `make helm-template` (requires `helm`); CI also lints/renders it. EU overlays:
 `values-ovhcloud.yaml`, `values-outscale.yaml`. See `docs/deployment.md`.
+
+Load test (`load/k6/rag_query.js`, requires `k6`) — start the API (`make run` or `make up`), then
+`make load` (or `make load BASE_URL=https://...` against a deployment). Ramps VUs against `POST /query`
+and **fails** the run if `http_req_failed >= 1%` or `/query` p95 `>= 1000ms`. Against offline defaults
+it measures framework/threadpool overhead; point at the real stack for end-to-end capacity. Used to
+calibrate the HPA — see `load/README.md`.
 
 ## Optional extras & docs
 
