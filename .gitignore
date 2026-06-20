@@ -21,3 +21,5 @@ data/index/
 qdrant_storage/
 #
 offre.md
+*.code-workspace
+ai-mentoring-toolkit/
