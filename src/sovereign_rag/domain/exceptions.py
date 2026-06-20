@@ -22,6 +22,14 @@ class GuardrailBlockedError(SovereignRagError):
         self.reason = reason
 
 
+class InputTooLargeError(SovereignRagError):
+    """Raised when a request exceeds the configured input-size limits."""
+
+    def __init__(self, reason: str) -> None:
+        super().__init__(reason)
+        self.reason = reason
+
+
 class AuthenticationError(SovereignRagError):
     """Raised when a request carries no valid credential."""
 

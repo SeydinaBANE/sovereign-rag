@@ -54,12 +54,12 @@ spec:
           {{- end }}
           livenessProbe:
             httpGet:
-              path: {{ .Values.probes.path }}
+              path: {{ .Values.probes.livenessPath }}
               port: http
             {{- toYaml .Values.probes.liveness | nindent 12 }}
           readinessProbe:
             httpGet:
-              path: {{ .Values.probes.path }}
+              path: {{ .Values.probes.readinessPath }}
               port: http
             {{- toYaml .Values.probes.readiness | nindent 12 }}
           resources:

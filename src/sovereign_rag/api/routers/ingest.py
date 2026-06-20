@@ -4,6 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
+from sovereign_rag.api.limits import enforce_ingest_limits
 from sovereign_rag.api.schemas import IngestRequest, IngestResponse
 from sovereign_rag.api.security import CurrentPrincipal
 from sovereign_rag.container import Container, get_container
@@ -21,6 +22,7 @@ def ingest(
     container: Annotated[Container, Depends(get_container)],
 ) -> IngestResponse:
     access_control.require(principal, Permission.INGEST)
+    enforce_ingest_limits(request, container.settings)
     default_region = container.settings.default_region
     documents = [
         Document(

@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
-from sovereign_rag.api.schemas import CardRequest
+from sovereign_rag.api.schemas import AuditVerification, CardRequest
 from sovereign_rag.api.security import CurrentPrincipal
 from sovereign_rag.compliance.model_card import build_card
 from sovereign_rag.container import Container, get_container
@@ -32,6 +32,15 @@ def card(
         data_sources=[],
         regions=settings.allowed_regions,
     )
+
+
+@router.get("/audit/verify", response_model=AuditVerification)
+def audit_verify(
+    principal: CurrentPrincipal,
+    container: Annotated[Container, Depends(get_container)],
+) -> AuditVerification:
+    access_control.require(principal, Permission.READ_COMPLIANCE)
+    return AuditVerification(valid=container.audit.verify_chain())
 
 
 @router.post("/card", response_model=ModelCard)

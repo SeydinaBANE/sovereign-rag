@@ -40,6 +40,19 @@ Helm chart (`deploy/helm/sovereign-rag`, deploys API + optional Qdrant to EU K8s
 `make helm-lint` and `make helm-template` (requires `helm`); CI also lints/renders it. EU overlays:
 `values-ovhcloud.yaml`, `values-outscale.yaml`. See `docs/deployment.md`.
 
+## Optional extras & docs
+
+Python **>=3.11**. Heavy providers are opt-in extras (installed via `uv sync --extra <name>`);
+each maps to a lazily-imported adapter, so the package stays importable without them:
+
+`mistral` (Mistral LLM), `qdrant` (vector store), `embeddings` (fastembed sparse),
+`rerank` (sentence-transformers cross-encoder), `pii` (Presidio), `observability`
+(Langfuse/OTel), `auth-oidc` (PyJWT), `pii-vault` (cryptography/Fernet),
+`finetune-local` (transformers/peft/trl/torch).
+
+Deeper docs live in `docs/`: `architecture.md`, `configuration.md`, `deployment.md`,
+and `compliance/`.
+
 ## Architecture (the big picture)
 
 Dependency direction is strictly inward — **domain depends on nothing**:
@@ -60,10 +73,15 @@ api (FastAPI routers) → services → ports (Protocol) ← adapters (Mistral/Qd
 - **`services/`** — application orchestration: `ingestion`, `retrieval`, `fusion` (Reciprocal Rank
   Fusion), `rag` (the query pipeline), `access_control`, `chunking`. Services depend only on ports.
 - **`compliance/`** — cross-cutting: `pii` (mask/refuse/allow), `audit` (append-only **hash-chained**
-  log, no DB), `data_residency` (region filtering enforced at retrieval, not just config), `model_card`.
+  log behind `AuditPort`: `FileAuditLog` caches the chain tip in memory + serialises writes with a lock;
+  `PostgresAuditLog` is the shared multi-replica backend, selected by `SRAG_AUDIT_PROVIDER=file|postgres`),
+  `data_residency` (region filtering enforced at retrieval, not just config), `model_card`.
 - **`observability/`** — `tracing` (Langfuse/OTel spans) and `evals` (automated eval scores).
 - **`api/`** — FastAPI app, routers (`ingest`, `query`, `compliance`, `fine_tuning`, `pii`, `health`),
-  DTO `schemas.py`, and `security.py` (API-key → `Principal` resolution as a FastAPI dependency).
+  DTO `schemas.py`, `limits.py` (request-size guardrails → `InputTooLargeError`/422, driven by
+  `SRAG_MAX_*`), and `security.py` (API-key → `Principal` resolution as a FastAPI dependency).
+  Probes: `/healthz` (liveness, O(1)) and `/readyz` (readiness); audit-chain integrity is verified
+  on demand via `GET /compliance/audit/verify`, never on a probe.
 
 ### Reversible PII vault (`services` integration, `ports/vault.py`)
 
@@ -102,6 +120,9 @@ trace span. In `vector` retrieval mode only the dense leg runs.
 All config is env-driven via `pydantic-settings`, prefix **`SRAG_`** (see `.env.example` for every knob).
 Defaults run fully offline: `SRAG_LLM_PROVIDER=fake`, `SRAG_VECTOR_PROVIDER=memory`,
 `SRAG_EMBEDDING_PROVIDER=fake`, `SRAG_AUTH_ENABLED=false`. Provider enums live in `config.py`.
+A `@model_validator` on `Settings` **refuses to boot** on unsafe combinations (auth on without
+credentials, Mistral provider without an API key, vault on with a weak secret, `postgres` audit
+without a DSN, empty `allowed_regions`) — fail fast at startup, not on the first request.
 
 - **Auth off** → every request is a single local `admin` principal on `SRAG_DEFAULT_TENANT`.
 - **Auth on** → resolved via the pluggable `PrincipalResolverPort` (selected by `SRAG_AUTH_PROVIDER`):

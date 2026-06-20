@@ -50,9 +50,23 @@ Images are built multi-arch (`linux/amd64`, `linux/arm64`) and pushed to GHCR by
 `Publish image` workflow on every `v*.*.*` tag / published release (or manually via
 **Actions → Publish image → Run workflow** with a tag).
 
+## Multi-replica / HA
+
+The audit log and PII vault are **node-local** under their default providers. For more than one
+replica, use shared backends so the hash chain and tokens stay consistent across pods:
+
+- **Audit:** set `SRAG_AUDIT_PROVIDER=postgres` + `SRAG_AUDIT_DSN` (extra `audit-postgres`); a
+  transaction-scoped advisory lock serialises the chain across replicas. The default `file` provider
+  is only consistent for a single instance.
+- **Hybrid retrieval:** keep `SRAG_SPARSE_PROVIDER=fastembed` with Qdrant so sparse vectors are
+  Qdrant-native (persistent, shared) rather than the in-process BM25 index.
+- **PII vault:** the bundled vault is in-memory; only enable `SRAG_PII_VAULT_ON_INGEST` in HA with a
+  shared backend.
+
 ## Notes
 
-- Probes hit `/healthz` (liveness + readiness); readiness reflects vector-store reachability.
+- Liveness hits `/healthz` (O(1)); readiness hits `/readyz` (vector-store reachability). Audit-chain
+  integrity is verified on demand via the authenticated `GET /compliance/audit/verify`, never on a probe.
 - Pods run non-root (`runAsNonRoot`, dropped capabilities), matching the Dockerfile `appuser`.
 - A managed Qdrant (OVHcloud/Outscale) is preferred over the bundled StatefulSet for production HA —
   set `qdrant.enabled=false` and point `config.SRAG_QDRANT_URL` at the managed endpoint.

@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from sovereign_rag.compliance.audit import FileAuditLog, hash_query
@@ -21,3 +22,16 @@ def test_audit_chain_detects_tampering(tmp_path: Path):
 
 def test_empty_audit_chain_is_valid(tmp_path: Path):
     assert FileAuditLog(tmp_path / "audit.log").verify_chain() is True
+
+
+def test_audit_chain_valid_under_concurrent_writes(tmp_path: Path):
+    log = FileAuditLog(tmp_path / "audit.log")
+
+    def _record(index: int) -> None:
+        log.record(hash_query(f"q{index}"), ["a.md"], "eu-west", "answered")
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        list(pool.map(_record, range(200)))
+
+    assert log.verify_chain() is True
+    assert len(log._entries()) == 200
