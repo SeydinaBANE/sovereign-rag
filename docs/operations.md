@@ -52,3 +52,8 @@ Operational procedures for running Sovereign RAG in production. Pairs with
 - Per-pod concurrency is bounded by the FastAPI threadpool; raise replicas (HPA) rather than relying on a
   single large pod. `WEB_CONCURRENCY>1` only with the Postgres audit/vault backends.
 - Rate limiting and TLS termination belong at the ingress/gateway, not in-app.
+- **Find the saturation point before sizing the HPA:** run the k6 load test (`make load`, see
+  [`../load/README.md`](../load/README.md)) and watch where `/query` p95 starts climbing as VUs rise —
+  that VU count is the per-pod ceiling. Set `autoscaling.targetCPUUtilizationPercentage` to scale out
+  *before* it, and `minReplicas` for your baseline RPS. Run once against fake providers (framework
+  ceiling) and once against the real Mistral/Qdrant stack (true end-to-end).
