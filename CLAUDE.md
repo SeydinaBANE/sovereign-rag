@@ -40,6 +40,19 @@ Helm chart (`deploy/helm/sovereign-rag`, deploys API + optional Qdrant to EU K8s
 `make helm-lint` and `make helm-template` (requires `helm`); CI also lints/renders it. EU overlays:
 `values-ovhcloud.yaml`, `values-outscale.yaml`. See `docs/deployment.md`.
 
+## Optional extras & docs
+
+Python **>=3.11**. Heavy providers are opt-in extras (installed via `uv sync --extra <name>`);
+each maps to a lazily-imported adapter, so the package stays importable without them:
+
+`mistral` (Mistral LLM), `qdrant` (vector store), `embeddings` (fastembed sparse),
+`rerank` (sentence-transformers cross-encoder), `pii` (Presidio), `observability`
+(Langfuse/OTel), `auth-oidc` (PyJWT), `pii-vault` (cryptography/Fernet),
+`finetune-local` (transformers/peft/trl/torch).
+
+Deeper docs live in `docs/`: `architecture.md`, `configuration.md`, `deployment.md`,
+and `compliance/`.
+
 ## Architecture (the big picture)
 
 Dependency direction is strictly inward — **domain depends on nothing**:
