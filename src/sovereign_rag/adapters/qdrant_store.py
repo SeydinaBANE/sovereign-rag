@@ -57,17 +57,17 @@ class QdrantStore:
         tenant_id: str,
         regions: list[str] | None = None,
     ) -> list[ScoredChunk]:
-        hits = retry_call(
-            lambda: self._client.search(
+        response = retry_call(
+            lambda: self._client.query_points(
                 collection_name=self._collection,
-                query_vector=embedding,
+                query=embedding,
                 limit=top_k,
                 query_filter=build_filter(tenant_id, regions),
                 with_payload=True,
             ),
             self._retry,
         )
-        return [scored_from_hit(hit) for hit in hits]
+        return [scored_from_hit(point) for point in response.points]
 
     def delete_by_source(self, source: str) -> int:
         from qdrant_client.models import FieldCondition, Filter, MatchValue
