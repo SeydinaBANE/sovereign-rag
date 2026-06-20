@@ -22,6 +22,14 @@ def test_healthz_reports_status(client: TestClient):
     assert response.json()["status"] == "ok"
 
 
+def test_responses_carry_security_headers(client: TestClient):
+    response = client.get("/healthz")
+    assert response.headers["X-Content-Type-Options"] == "nosniff"
+    assert response.headers["X-Frame-Options"] == "DENY"
+    assert response.headers["Referrer-Policy"] == "no-referrer"
+    assert "max-age=" in response.headers["Strict-Transport-Security"]
+
+
 def test_readyz_reports_vector_count(client: TestClient):
     response = client.get("/readyz")
     assert response.status_code == 200

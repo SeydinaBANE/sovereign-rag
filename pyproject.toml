@@ -40,6 +40,8 @@ dev = [
     "respx>=0.21",
     "pre-commit>=3.7",
     "pyjwt[crypto]>=2.8",
+    "bandit>=1.7",
+    "pip-audit>=2.7",
 ]
 
 [build-system]
@@ -48,6 +50,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/sovereign_rag"]
+
+[tool.bandit]
+exclude_dirs = ["tests"]
 
 [tool.ruff]
 line-length = 100
@@ -75,7 +80,7 @@ module = ["qdrant_client.*", "mistralai.*", "presidio_analyzer.*", "presidio_ano
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
-addopts = "-ra -q --cov=sovereign_rag --cov-report=term-missing"
+addopts = "-ra -q --cov=sovereign_rag --cov-report=term-missing --cov-fail-under=75"
 testpaths = ["tests"]
 asyncio_mode = "auto"
 pythonpath = ["src"]

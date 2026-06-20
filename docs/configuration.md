@@ -20,7 +20,7 @@ Each non-default provider needs its extra installed (`uv sync --extra <name>` or
 | `observability` | Langfuse / OpenTelemetry tracing |
 | `auth-oidc` | JWT/OIDC authentication |
 | `pii-vault` | reversible PII vault (encryption) |
-| `audit-postgres` | shared Postgres audit log (multi-replica HA) |
+| `audit-postgres` | shared Postgres audit log + PII vault (multi-replica HA) |
 | `finetune-local` | on-prem LoRA/PEFT fine-tuning |
 
 ## LLM
@@ -99,6 +99,18 @@ DoS / cost guardrails enforced at the API layer (oversized requests → `422`).
 | `SRAG_MAX_DOCUMENTS_PER_REQUEST` | `256` | max documents per `/ingest` call |
 | `SRAG_MAX_TOP_K` | `50` | upper bound on requested `top_k` |
 
+## Resilience
+
+Bounded exponential-backoff retry on transient outbound failures (LLM, Qdrant, OIDC JWKS).
+
+| Variable | Default | Notes |
+|---|---|---|
+| `SRAG_RETRY_ATTEMPTS` | `3` | total attempts; `1` disables retries |
+| `SRAG_RETRY_BASE_DELAY` | `0.2` | seconds; doubles each retry |
+
+All API responses also carry baseline security headers (`X-Content-Type-Options`, `X-Frame-Options`,
+`Referrer-Policy`, `Strict-Transport-Security`).
+
 ## Compliance & PII
 
 | Variable | Default | Notes |
@@ -107,7 +119,10 @@ DoS / cost guardrails enforced at the API layer (oversized requests → `422`).
 | `SRAG_DEFAULT_REGION` | `eu-west` | |
 | `SRAG_PII_POLICY` | `mask` | `mask` \| `refuse` \| `allow` |
 | `SRAG_PII_VAULT_ON_INGEST` | `false` | tokenize (reversible) instead of masking |
-| `SRAG_PII_VAULT_SECRET` | – | derives the encryption key; ≥ 32 chars required when the vault is on |
+| `SRAG_PII_VAULT_PROVIDER` | `memory` | `memory` (node-local) \| `postgres` (shared, multi-replica HA) |
+| `SRAG_PII_VAULT_SECRET` | – | derives the Fernet key (PBKDF2-HMAC-SHA256); ≥ 32 chars required when the vault is on |
+| `SRAG_PII_VAULT_SALT` | `sovereign-rag-pii-vault` | KDF salt; rotating it invalidates existing ciphertext |
+| `SRAG_PII_VAULT_DSN` | – | required when `SRAG_PII_VAULT_PROVIDER=postgres` |
 | `SRAG_AUDIT_PROVIDER` | `file` | `file` (node-local) \| `postgres` (shared, multi-replica HA) |
 | `SRAG_AUDIT_PATH` | `data/audit/audit.log` | hash-chained audit log (`file` provider) |
 | `SRAG_AUDIT_DSN` | – | required when `SRAG_AUDIT_PROVIDER=postgres` |

@@ -51,7 +51,7 @@ each maps to a lazily-imported adapter, so the package stays importable without 
 `finetune-local` (transformers/peft/trl/torch).
 
 Deeper docs live in `docs/`: `architecture.md`, `configuration.md`, `deployment.md`,
-and `compliance/`.
+`operations.md` (backup/restore, key rotation, incident response), and `compliance/`.
 
 ## Architecture (the big picture)
 
@@ -69,7 +69,8 @@ api (FastAPI routers) → services → ports (Protocol) ← adapters (Mistral/Qd
 - **`adapters/`** — port implementations. Each heavy SDK (`mistralai`, `qdrant-client`, `presidio`,
   `fastembed`, `sentence-transformers`) is **imported lazily inside the adapter**, never at module top
   level — this is what keeps the package importable without optional deps. `fakes.py` holds the
-  deterministic in-memory implementations used by default and in tests.
+  deterministic in-memory implementations used by default and in tests. Outbound calls (Mistral,
+  Qdrant, JWKS) carry timeouts and a bounded backoff retry (`retry.py`, `SRAG_RETRY_*`).
 - **`services/`** — application orchestration: `ingestion`, `retrieval`, `fusion` (Reciprocal Rank
   Fusion), `rag` (the query pipeline), `access_control`, `chunking`. Services depend only on ports.
 - **`compliance/`** — cross-cutting: `pii` (mask/refuse/allow), `audit` (append-only **hash-chained**
@@ -81,11 +82,15 @@ api (FastAPI routers) → services → ports (Protocol) ← adapters (Mistral/Qd
   DTO `schemas.py`, `limits.py` (request-size guardrails → `InputTooLargeError`/422, driven by
   `SRAG_MAX_*`), and `security.py` (API-key → `Principal` resolution as a FastAPI dependency).
   Probes: `/healthz` (liveness, O(1)) and `/readyz` (readiness); audit-chain integrity is verified
-  on demand via `GET /compliance/audit/verify`, never on a probe.
+  on demand via `GET /compliance/audit/verify`, never on a probe. A middleware adds baseline security
+  headers (HSTS, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`) and the app `lifespan`
+  validates `Settings` at startup (fail-fast).
 
 ### Reversible PII vault (`services` integration, `ports/vault.py`)
 
-`PIIVaultPort` (`InMemoryPIIVault`: deterministic per-tenant tokens, Fernet-encrypted values). Gated by
+`PIIVaultPort` (`InMemoryPIIVault` or shared `PostgresPIIVault` for HA, via `SRAG_PII_VAULT_PROVIDER`):
+deterministic per-tenant tokens, Fernet-encrypted values (key derived with PBKDF2-HMAC-SHA256, shared
+crypto in `adapters/vault_crypto.py`). Gated by
 `SRAG_PII_VAULT_ON_INGEST` (default off): when on, `IngestionService` tokenizes PII instead of
 destructively masking, and `RAGService` detokenizes the answer + citations for the authorized principal
 (audited). Also exposed as `/pii/tokenize` (perm `ingest`) and `/pii/detokenize` (perm `manage`), both
