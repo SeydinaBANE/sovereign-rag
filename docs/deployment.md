@@ -63,6 +63,15 @@ replica, use shared backends so the hash chain and tokens stay consistent across
 - **PII vault:** the bundled vault is in-memory; only enable `SRAG_PII_VAULT_ON_INGEST` in HA with a
   shared backend.
 
+## Capacity & autoscaling
+
+Size `replicaCount` / `autoscaling.*` from measured numbers, not guesses. The repo ships a reproducible
+k6 load test (`make load`, [`../load/README.md`](../load/README.md)) that ramps virtual users against
+`POST /query` and **fails** if `http_req_failed >= 1%` or `/query` p95 `>= 1000ms`. Find the VU count
+where p95 starts climbing (the per-pod saturation point), then set
+`autoscaling.targetCPUUtilizationPercentage` to scale out before it and `minReplicas` for your baseline
+RPS. See `operations.md` → *Scaling*.
+
 ## Notes
 
 - Liveness hits `/healthz` (O(1)); readiness hits `/readyz` (vector-store reachability). Audit-chain

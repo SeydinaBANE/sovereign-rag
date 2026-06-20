@@ -113,6 +113,7 @@ All config is environment-driven via `pydantic-settings` (prefix `SRAG_`). See t
 | [Architecture](docs/architecture.md) | Hexagonal layers, request flow, ADRs, sovereign deployment |
 | [Configuration](docs/configuration.md) | Full `SRAG_*` reference (providers, retrieval, auth, vault, compliance) |
 | [Deployment](docs/deployment.md) | Helm chart, OVHcloud/Outscale overlays, image publishing |
+| [Load testing](load/README.md) | k6 query-path load test (`make load`), HPA calibration |
 | [AI Act mapping](docs/compliance/ai-act-mapping.md) | Regulatory-to-technical control mapping |
 | [Roadmap](TODO.mmd) | Build phases and backlog (Mermaid) |
 | [Contributing](CONTRIBUTING.md) | Dev setup, branching flow, the provider pattern |
