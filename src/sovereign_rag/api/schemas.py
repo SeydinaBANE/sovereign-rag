@@ -28,8 +28,15 @@ class QueryRequest(BaseModel):
 
 class HealthResponse(BaseModel):
     status: str
+
+
+class ReadinessResponse(BaseModel):
+    status: str
     vector_count: int
-    audit_chain_valid: bool
+
+
+class AuditVerification(BaseModel):
+    valid: bool
 
 
 class CardRequest(BaseModel):

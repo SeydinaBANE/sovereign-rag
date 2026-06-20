@@ -12,10 +12,11 @@ class MistralLLM:
         model: str = "mistral-large-latest",
         temperature: float = 0.1,
         max_tokens: int = 1024,
+        timeout: float = 30.0,
     ) -> None:
         from mistralai import Mistral
 
-        self._client = Mistral(api_key=api_key)
+        self._client = Mistral(api_key=api_key, timeout_ms=int(timeout * 1000))
         self._model = model
         self._temperature = temperature
         self._max_tokens = max_tokens

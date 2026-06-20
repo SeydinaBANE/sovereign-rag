@@ -28,7 +28,7 @@ def _settings(tmp_path: Path, **overrides: object) -> Settings:
         "allowed_regions": ["eu-west"],
         "default_region": "eu-west",
         "pii_vault_on_ingest": True,
-        "pii_vault_secret": "integration-vault-secret",
+        "pii_vault_secret": "integration-vault-secret-0123456789",
     }
     base.update(overrides)
     return Settings(**base)

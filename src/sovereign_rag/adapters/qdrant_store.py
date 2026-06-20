@@ -13,12 +13,12 @@ from sovereign_rag.domain.models import EmbeddedChunk, ScoredChunk
 class QdrantStore:
     """Self-hostable Qdrant dense vector store with tenant + region filtering."""
 
-    def __init__(self, url: str, collection: str, dim: int) -> None:
+    def __init__(self, url: str, collection: str, dim: int, timeout: float = 10.0) -> None:
         from qdrant_client import QdrantClient
         from qdrant_client.models import Distance, VectorParams
 
         self._collection = collection
-        self._client = QdrantClient(url=url)
+        self._client = QdrantClient(url=url, timeout=int(timeout))
         if not self._client.collection_exists(collection):
             self._client.create_collection(
                 collection_name=collection,

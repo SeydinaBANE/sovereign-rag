@@ -20,6 +20,7 @@ class QdrantHybridStore:
         collection: str,
         dim: int,
         sparse: SparseEmbeddingPort,
+        timeout: float = 10.0,
     ) -> None:
         from qdrant_client import QdrantClient
         from qdrant_client.models import (
@@ -30,7 +31,7 @@ class QdrantHybridStore:
 
         self._collection = collection
         self._sparse = sparse
-        self._client = QdrantClient(url=url)
+        self._client = QdrantClient(url=url, timeout=int(timeout))
         if not self._client.collection_exists(collection):
             self._client.create_collection(
                 collection_name=collection,

@@ -4,10 +4,16 @@ from __future__ import annotations
 class MistralEmbedding:
     """Mistral embedding adapter (`mistral-embed`)."""
 
-    def __init__(self, api_key: str, model: str = "mistral-embed", dim: int = 1024) -> None:
+    def __init__(
+        self,
+        api_key: str,
+        model: str = "mistral-embed",
+        dim: int = 1024,
+        timeout: float = 30.0,
+    ) -> None:
         from mistralai import Mistral
 
-        self._client = Mistral(api_key=api_key)
+        self._client = Mistral(api_key=api_key, timeout_ms=int(timeout * 1000))
         self._model = model
         self._dim = dim
 

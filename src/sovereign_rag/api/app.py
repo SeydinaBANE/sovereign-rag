@@ -12,6 +12,7 @@ from sovereign_rag.domain.exceptions import (
     FineTuningDisabledError,
     FineTuningJobNotFound,
     IndexEmptyError,
+    InputTooLargeError,
     ResidencyError,
     SovereignRagError,
 )
@@ -20,6 +21,7 @@ _STATUS = {
     AuthenticationError: 401,
     AuthorizationError: 403,
     ResidencyError: 422,
+    InputTooLargeError: 422,
     EmptyCorpusError: 400,
     IndexEmptyError: 409,
     FineTuningDataError: 422,

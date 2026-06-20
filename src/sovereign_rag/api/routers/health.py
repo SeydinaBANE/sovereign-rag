@@ -4,18 +4,19 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
-from sovereign_rag.api.schemas import HealthResponse
+from sovereign_rag.api.schemas import HealthResponse, ReadinessResponse
 from sovereign_rag.container import Container, get_container
 
 router = APIRouter(tags=["ops"])
 
 
 @router.get("/healthz", response_model=HealthResponse)
-def healthz(
+def healthz() -> HealthResponse:
+    return HealthResponse(status="ok")
+
+
+@router.get("/readyz", response_model=ReadinessResponse)
+def readyz(
     container: Annotated[Container, Depends(get_container)],
-) -> HealthResponse:
-    return HealthResponse(
-        status="ok",
-        vector_count=container.store.count(),
-        audit_chain_valid=container.audit.verify_chain(),
-    )
+) -> ReadinessResponse:
+    return ReadinessResponse(status="ready", vector_count=container.store.count())

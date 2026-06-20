@@ -15,6 +15,7 @@ from sovereign_rag.adapters.principals import StaticPrincipalResolver
 from sovereign_rag.adapters.regex_guardrail import RegexGuardrail
 from sovereign_rag.compliance.audit import FileAuditLog
 from sovereign_rag.config import (
+    AuditProvider,
     AuthProvider,
     EmbeddingProvider,
     FineTuningProvider,
@@ -68,6 +69,7 @@ def build_embedder(settings: Settings) -> EmbeddingPort:
             api_key=settings.mistral_api_key,
             model=settings.embedding_model,
             dim=settings.embedding_dim,
+            timeout=settings.embedding_timeout_seconds,
         )
     if settings.embedding_provider is EmbeddingProvider.LOCAL:
         from sovereign_rag.adapters.local_embeddings import LocalEmbedding
@@ -90,6 +92,7 @@ def build_stores(
                 collection=settings.qdrant_collection,
                 dim=embedder.dim,
                 sparse=FastEmbedSparse(model=settings.sparse_model),
+                timeout=settings.qdrant_timeout_seconds,
             )
             return hybrid, hybrid.lexical()
 
@@ -99,6 +102,7 @@ def build_stores(
             url=settings.qdrant_url,
             collection=settings.qdrant_collection,
             dim=embedder.dim,
+            timeout=settings.qdrant_timeout_seconds,
         )
         return store, BM25Index()
     return InMemoryVectorStore(), BM25Index()
@@ -113,6 +117,7 @@ def build_llm(settings: Settings) -> LLMPort:
             model=settings.llm_model,
             temperature=settings.llm_temperature,
             max_tokens=settings.llm_max_tokens,
+            timeout=settings.llm_timeout_seconds,
         )
     return FakeLLM(model=settings.llm_model)
 
@@ -141,6 +146,7 @@ def build_principals(settings: Settings) -> PrincipalResolverPort:
             issuer=settings.oidc_issuer,
             audience=settings.oidc_audience,
             jwks_url=settings.oidc_jwks_url,
+            jwks_timeout=settings.oidc_jwks_timeout_seconds,
             algorithms=settings.oidc_algorithms,
             hs256_secret=settings.oidc_hs256_secret,
             subject_claim=settings.oidc_subject_claim,
@@ -165,6 +171,14 @@ def build_fine_tuner(settings: Settings) -> FineTuningPort | None:
     return None
 
 
+def build_audit(settings: Settings) -> AuditPort:
+    if settings.audit_provider is AuditProvider.POSTGRES:
+        from sovereign_rag.adapters.postgres_audit import PostgresAuditLog
+
+        return PostgresAuditLog(dsn=settings.audit_dsn)
+    return FileAuditLog(settings.audit_path)
+
+
 def build_tracer(settings: Settings) -> Tracer:
     if not settings.langfuse_enabled:
         return Tracer()
@@ -184,7 +198,7 @@ def build_container(settings: Settings) -> Container:
     reranker = build_reranker(settings)
     principals: PrincipalResolverPort = build_principals(settings)
     guardrail: GuardrailPort = RegexGuardrail(pii_policy=settings.pii_policy)
-    audit: AuditPort = FileAuditLog(settings.audit_path)
+    audit: AuditPort = build_audit(settings)
     llm = build_llm(settings)
     tracer = build_tracer(settings)
 

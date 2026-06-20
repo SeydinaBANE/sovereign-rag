@@ -68,7 +68,8 @@ ingress:
   tls: []
 
 probes:
-  path: /healthz
+  livenessPath: /healthz
+  readinessPath: /readyz
   liveness:
     initialDelaySeconds: 10
     periodSeconds: 30

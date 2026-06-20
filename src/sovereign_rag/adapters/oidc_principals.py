@@ -29,10 +29,12 @@ class OidcPrincipalResolver:
         tenant_claim: str,
         roles_claim: str,
         default_tenant: str,
+        jwks_timeout: float = 5.0,
     ) -> None:
         self._issuer = issuer
         self._audience = audience
         self._algorithms = algorithms
+        self._jwks_timeout = jwks_timeout
         self._hs256_secret = hs256_secret
         self._subject_claim = subject_claim
         self._tenant_claim = tenant_claim
@@ -72,7 +74,7 @@ class OidcPrincipalResolver:
         if self._jwks_client is None:
             from jwt import PyJWKClient
 
-            self._jwks_client = PyJWKClient(self._jwks_url)
+            self._jwks_client = PyJWKClient(self._jwks_url, timeout=int(self._jwks_timeout))
         return self._jwks_client
 
     def _to_principal(self, claims: dict[str, Any]) -> Principal | None:
