@@ -7,6 +7,7 @@ from sovereign_rag.adapters.qdrant_common import (
     chunk_payload,
     scored_from_hit,
 )
+from sovereign_rag.adapters.retry import RetryPolicy, retry_call
 from sovereign_rag.domain.models import Chunk, EmbeddedChunk, ScoredChunk
 from sovereign_rag.ports.sparse import SparseEmbeddingPort
 
@@ -21,6 +22,7 @@ class QdrantHybridStore:
         dim: int,
         sparse: SparseEmbeddingPort,
         timeout: float = 10.0,
+        retry: RetryPolicy | None = None,
     ) -> None:
         from qdrant_client import QdrantClient
         from qdrant_client.models import (
@@ -31,6 +33,7 @@ class QdrantHybridStore:
 
         self._collection = collection
         self._sparse = sparse
+        self._retry = retry or RetryPolicy()
         self._client = QdrantClient(url=url, timeout=int(timeout))
         if not self._client.collection_exists(collection):
             self._client.create_collection(
@@ -54,7 +57,10 @@ class QdrantHybridStore:
             )
             for item, vector in zip(items, encoded, strict=True)
         ]
-        self._client.upsert(collection_name=self._collection, points=points)
+        retry_call(
+            lambda: self._client.upsert(collection_name=self._collection, points=points),
+            self._retry,
+        )
 
     def search(
         self,
@@ -63,13 +69,16 @@ class QdrantHybridStore:
         tenant_id: str,
         regions: list[str] | None = None,
     ) -> list[ScoredChunk]:
-        response = self._client.query_points(
-            collection_name=self._collection,
-            query=embedding,
-            using="dense",
-            limit=top_k,
-            query_filter=build_filter(tenant_id, regions),
-            with_payload=True,
+        response = retry_call(
+            lambda: self._client.query_points(
+                collection_name=self._collection,
+                query=embedding,
+                using="dense",
+                limit=top_k,
+                query_filter=build_filter(tenant_id, regions),
+                with_payload=True,
+            ),
+            self._retry,
         )
         return [scored_from_hit(point) for point in response.points]
 
@@ -83,13 +92,16 @@ class QdrantHybridStore:
         from qdrant_client.models import SparseVector
 
         vector = self._sparse.encode([text])[0]
-        response = self._client.query_points(
-            collection_name=self._collection,
-            query=SparseVector(indices=vector.indices, values=vector.values),
-            using="sparse",
-            limit=top_k,
-            query_filter=build_filter(tenant_id, regions),
-            with_payload=True,
+        response = retry_call(
+            lambda: self._client.query_points(
+                collection_name=self._collection,
+                query=SparseVector(indices=vector.indices, values=vector.values),
+                using="sparse",
+                limit=top_k,
+                query_filter=build_filter(tenant_id, regions),
+                with_payload=True,
+            ),
+            self._retry,
         )
         return [scored_from_hit(point) for point in response.points]
 

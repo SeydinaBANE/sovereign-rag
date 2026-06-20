@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from sovereign_rag.adapters.retry import RetryPolicy, retry_call
 from sovereign_rag.domain.access import Principal, Role
 
 if TYPE_CHECKING:
@@ -30,11 +31,13 @@ class OidcPrincipalResolver:
         roles_claim: str,
         default_tenant: str,
         jwks_timeout: float = 5.0,
+        retry: RetryPolicy | None = None,
     ) -> None:
         self._issuer = issuer
         self._audience = audience
         self._algorithms = algorithms
         self._jwks_timeout = jwks_timeout
+        self._retry = retry or RetryPolicy()
         self._hs256_secret = hs256_secret
         self._subject_claim = subject_claim
         self._tenant_claim = tenant_claim
@@ -68,7 +71,10 @@ class OidcPrincipalResolver:
     def _signing_key(self, token: str, algorithm: str) -> str | PyJWK:
         if algorithm.startswith("HS"):
             return self._hs256_secret
-        return self._jwk_client().get_signing_key_from_jwt(token)
+        return retry_call(
+            lambda: self._jwk_client().get_signing_key_from_jwt(token),
+            self._retry,
+        )
 
     def _jwk_client(self) -> PyJWKClient:
         if self._jwks_client is None:

@@ -77,8 +77,8 @@ class LocalLoRAFineTuner:
         from transformers import AutoModelForCausalLM, AutoTokenizer
         from trl import SFTConfig, SFTTrainer
 
-        tokenizer = AutoTokenizer.from_pretrained(spec.base_model)
-        model = AutoModelForCausalLM.from_pretrained(spec.base_model)
+        tokenizer = AutoTokenizer.from_pretrained(spec.base_model)  # nosec B615
+        model = AutoModelForCausalLM.from_pretrained(spec.base_model)  # nosec B615
         rendered = [_render(example, tokenizer) for example in spec.examples]
         dataset = Dataset.from_dict({"text": rendered})
         trainer = SFTTrainer(

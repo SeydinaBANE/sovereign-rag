@@ -13,6 +13,7 @@ from sovereign_rag.adapters.fakes import (
 from sovereign_rag.adapters.lexical_reranker import LexicalReranker
 from sovereign_rag.adapters.principals import StaticPrincipalResolver
 from sovereign_rag.adapters.regex_guardrail import RegexGuardrail
+from sovereign_rag.adapters.retry import RetryPolicy
 from sovereign_rag.compliance.audit import FileAuditLog
 from sovereign_rag.config import (
     AuditProvider,
@@ -61,6 +62,10 @@ class Container:
     vault: PIIVaultPort
 
 
+def build_retry_policy(settings: Settings) -> RetryPolicy:
+    return RetryPolicy(attempts=settings.retry_attempts, base_delay=settings.retry_base_delay)
+
+
 def build_embedder(settings: Settings) -> EmbeddingPort:
     if settings.embedding_provider is EmbeddingProvider.MISTRAL:
         from sovereign_rag.adapters.mistral_embeddings import MistralEmbedding
@@ -70,6 +75,7 @@ def build_embedder(settings: Settings) -> EmbeddingPort:
             model=settings.embedding_model,
             dim=settings.embedding_dim,
             timeout=settings.embedding_timeout_seconds,
+            retry=build_retry_policy(settings),
         )
     if settings.embedding_provider is EmbeddingProvider.LOCAL:
         from sovereign_rag.adapters.local_embeddings import LocalEmbedding
@@ -93,6 +99,7 @@ def build_stores(
                 dim=embedder.dim,
                 sparse=FastEmbedSparse(model=settings.sparse_model),
                 timeout=settings.qdrant_timeout_seconds,
+                retry=build_retry_policy(settings),
             )
             return hybrid, hybrid.lexical()
 
@@ -103,6 +110,7 @@ def build_stores(
             collection=settings.qdrant_collection,
             dim=embedder.dim,
             timeout=settings.qdrant_timeout_seconds,
+            retry=build_retry_policy(settings),
         )
         return store, BM25Index()
     return InMemoryVectorStore(), BM25Index()
@@ -118,6 +126,7 @@ def build_llm(settings: Settings) -> LLMPort:
             temperature=settings.llm_temperature,
             max_tokens=settings.llm_max_tokens,
             timeout=settings.llm_timeout_seconds,
+            retry=build_retry_policy(settings),
         )
     return FakeLLM(model=settings.llm_model)
 
@@ -153,6 +162,7 @@ def build_principals(settings: Settings) -> PrincipalResolverPort:
             tenant_claim=settings.oidc_tenant_claim,
             roles_claim=settings.oidc_roles_claim,
             default_tenant=settings.default_tenant,
+            retry=build_retry_policy(settings),
         )
     return StaticPrincipalResolver(settings.api_keys)
 
