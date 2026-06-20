@@ -21,6 +21,7 @@ from sovereign_rag.config import (
     EmbeddingProvider,
     FineTuningProvider,
     LLMProvider,
+    PIIVaultProvider,
     RerankerProvider,
     Settings,
     SparseProvider,
@@ -142,9 +143,17 @@ def build_reranker(settings: Settings) -> RerankerPort | None:
 
 
 def build_vault(settings: Settings) -> PIIVaultPort:
+    if settings.pii_vault_provider is PIIVaultProvider.POSTGRES:
+        from sovereign_rag.adapters.postgres_pii_vault import PostgresPIIVault
+
+        return PostgresPIIVault(
+            secret=settings.pii_vault_secret,
+            dsn=settings.pii_vault_dsn,
+            salt=settings.pii_vault_salt,
+        )
     from sovereign_rag.adapters.pii_vault import InMemoryPIIVault
 
-    return InMemoryPIIVault(secret=settings.pii_vault_secret)
+    return InMemoryPIIVault(secret=settings.pii_vault_secret, salt=settings.pii_vault_salt)
 
 
 def build_principals(settings: Settings) -> PrincipalResolverPort:

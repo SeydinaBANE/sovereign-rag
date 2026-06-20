@@ -51,7 +51,7 @@ each maps to a lazily-imported adapter, so the package stays importable without 
 `finetune-local` (transformers/peft/trl/torch).
 
 Deeper docs live in `docs/`: `architecture.md`, `configuration.md`, `deployment.md`,
-and `compliance/`.
+`operations.md` (backup/restore, key rotation, incident response), and `compliance/`.
 
 ## Architecture (the big picture)
 
@@ -88,7 +88,9 @@ api (FastAPI routers) → services → ports (Protocol) ← adapters (Mistral/Qd
 
 ### Reversible PII vault (`services` integration, `ports/vault.py`)
 
-`PIIVaultPort` (`InMemoryPIIVault`: deterministic per-tenant tokens, Fernet-encrypted values). Gated by
+`PIIVaultPort` (`InMemoryPIIVault` or shared `PostgresPIIVault` for HA, via `SRAG_PII_VAULT_PROVIDER`):
+deterministic per-tenant tokens, Fernet-encrypted values (key derived with PBKDF2-HMAC-SHA256, shared
+crypto in `adapters/vault_crypto.py`). Gated by
 `SRAG_PII_VAULT_ON_INGEST` (default off): when on, `IngestionService` tokenizes PII instead of
 destructively masking, and `RAGService` detokenizes the answer + citations for the authorized principal
 (audited). Also exposed as `/pii/tokenize` (perm `ingest`) and `/pii/detokenize` (perm `manage`), both
