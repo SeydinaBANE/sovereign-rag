@@ -59,7 +59,8 @@ class FakeEmbedding:
     def _embed_one(self, text: str) -> list[float]:
         vector = [0.0] * self._dim
         for token in _WORD.findall(text.lower()):
-            index = int(hashlib.md5(token.encode("utf-8")).hexdigest(), 16) % self._dim
+            digest = hashlib.md5(token.encode("utf-8"), usedforsecurity=False).hexdigest()
+            index = int(digest, 16) % self._dim
             vector[index] += 1.0
         norm = math.sqrt(sum(value * value for value in vector))
         if norm == 0.0:
@@ -79,7 +80,8 @@ class FakeSparseEmbedding:
     def _encode_one(self, text: str) -> SparseVector:
         counts: dict[int, float] = {}
         for token in _WORD.findall(text.lower()):
-            index = int(hashlib.md5(token.encode("utf-8")).hexdigest(), 16) % self._dim
+            digest = hashlib.md5(token.encode("utf-8"), usedforsecurity=False).hexdigest()
+            index = int(digest, 16) % self._dim
             counts[index] = counts.get(index, 0.0) + 1.0
         indices = sorted(counts)
         return SparseVector(indices=indices, values=[counts[index] for index in indices])

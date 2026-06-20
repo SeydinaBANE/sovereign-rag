@@ -105,6 +105,9 @@ class Settings(BaseSettings):
     max_documents_per_request: int = 256
     max_top_k: int = 50
 
+    retry_attempts: int = 3
+    retry_base_delay: float = 0.2
+
     chunk_size: int = 800
     chunk_overlap: int = 120
     top_k: int = 5

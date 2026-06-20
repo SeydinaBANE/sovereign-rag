@@ -99,6 +99,18 @@ DoS / cost guardrails enforced at the API layer (oversized requests → `422`).
 | `SRAG_MAX_DOCUMENTS_PER_REQUEST` | `256` | max documents per `/ingest` call |
 | `SRAG_MAX_TOP_K` | `50` | upper bound on requested `top_k` |
 
+## Resilience
+
+Bounded exponential-backoff retry on transient outbound failures (LLM, Qdrant, OIDC JWKS).
+
+| Variable | Default | Notes |
+|---|---|---|
+| `SRAG_RETRY_ATTEMPTS` | `3` | total attempts; `1` disables retries |
+| `SRAG_RETRY_BASE_DELAY` | `0.2` | seconds; doubles each retry |
+
+All API responses also carry baseline security headers (`X-Content-Type-Options`, `X-Frame-Options`,
+`Referrer-Policy`, `Strict-Transport-Security`).
+
 ## Compliance & PII
 
 | Variable | Default | Notes |

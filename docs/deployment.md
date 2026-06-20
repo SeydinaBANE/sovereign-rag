@@ -67,6 +67,9 @@ replica, use shared backends so the hash chain and tokens stay consistent across
 
 - Liveness hits `/healthz` (O(1)); readiness hits `/readyz` (vector-store reachability). Audit-chain
   integrity is verified on demand via the authenticated `GET /compliance/audit/verify`, never on a probe.
+- The container runs a single uvicorn worker by default. Set `WEB_CONCURRENCY` (env) to fork more
+  workers — but only with `SRAG_AUDIT_PROVIDER=postgres`, since each worker is a separate process with
+  its own node-local audit chain otherwise. Per-IP rate limiting belongs at the ingress/gateway.
 - Pods run non-root (`runAsNonRoot`, dropped capabilities), matching the Dockerfile `appuser`.
 - A managed Qdrant (OVHcloud/Outscale) is preferred over the bundled StatefulSet for production HA —
   set `qdrant.enabled=false` and point `config.SRAG_QDRANT_URL` at the managed endpoint.

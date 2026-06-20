@@ -2,7 +2,8 @@ FROM python:3.11-slim AS base
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    WEB_CONCURRENCY=1
 
 WORKDIR /app
 
@@ -23,4 +24,7 @@ USER appuser
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
     CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/healthz').status==200 else 1)"
 
-CMD ["uvicorn", "sovereign_rag.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+# WEB_CONCURRENCY > 1 forks multiple processes: only safe with a shared audit
+# backend (SRAG_AUDIT_PROVIDER=postgres), otherwise each worker keeps its own
+# node-local hash chain. Defaults to a single worker.
+CMD ["sh", "-c", "uvicorn sovereign_rag.api.app:app --host 0.0.0.0 --port 8000 --workers ${WEB_CONCURRENCY}"]
