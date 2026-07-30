@@ -73,6 +73,11 @@ class AuditProvider(StrEnum):
     POSTGRES = "postgres"
 
 
+class PIIVaultProvider(StrEnum):
+    MEMORY = "memory"
+    POSTGRES = "postgres"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="SRAG_",
@@ -137,7 +142,10 @@ class Settings(BaseSettings):
     oidc_tenant_claim: str = "tenant_id"
     oidc_roles_claim: str = "roles"
     pii_policy: PIIPolicy = PIIPolicy.MASK
+    pii_vault_provider: PIIVaultProvider = PIIVaultProvider.MEMORY
     pii_vault_secret: str = ""
+    pii_vault_salt: str = "sovereign-rag-pii-vault"
+    pii_vault_dsn: str = ""
     pii_vault_on_ingest: bool = False
     audit_provider: AuditProvider = AuditProvider.FILE
     audit_path: str = "data/audit/audit.log"
@@ -173,6 +181,8 @@ class Settings(BaseSettings):
             )
         if self.audit_provider is AuditProvider.POSTGRES and not self.audit_dsn:
             raise ValueError("SRAG_AUDIT_PROVIDER=postgres requires SRAG_AUDIT_DSN.")
+        if self.pii_vault_provider is PIIVaultProvider.POSTGRES and not self.pii_vault_dsn:
+            raise ValueError("SRAG_PII_VAULT_PROVIDER=postgres requires SRAG_PII_VAULT_DSN.")
         self._validate_auth()
         return self
 

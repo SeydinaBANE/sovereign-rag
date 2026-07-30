@@ -84,3 +84,6 @@ addopts = "-ra -q --cov=sovereign_rag --cov-report=term-missing --cov-fail-under
 testpaths = ["tests"]
 asyncio_mode = "auto"
 pythonpath = ["src"]
+markers = [
+    "integration: requires live Postgres/Qdrant services (skipped unless env is set)",
+]

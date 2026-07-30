@@ -24,6 +24,7 @@ make typecheck    # mypy (strict)
 make format       # ruff format + ruff check --fix
 make up / down    # docker compose: api + qdrant + langfuse + postgres
 make precommit    # pre-commit run --all-files
+make load         # k6 load test against $BASE_URL (default http://localhost:8000)
 ```
 
 Run a single test:
@@ -40,6 +41,12 @@ Helm chart (`deploy/helm/sovereign-rag`, deploys API + optional Qdrant to EU K8s
 `make helm-lint` and `make helm-template` (requires `helm`); CI also lints/renders it. EU overlays:
 `values-ovhcloud.yaml`, `values-outscale.yaml`. See `docs/deployment.md`.
 
+Load test (`load/k6/rag_query.js`, requires `k6`) — start the API (`make run` or `make up`), then
+`make load` (or `make load BASE_URL=https://...` against a deployment). Ramps VUs against `POST /query`
+and **fails** the run if `http_req_failed >= 1%` or `/query` p95 `>= 1000ms`. Against offline defaults
+it measures framework/threadpool overhead; point at the real stack for end-to-end capacity. Used to
+calibrate the HPA — see `load/README.md`.
+
 ## Optional extras & docs
 
 Python **>=3.11**. Heavy providers are opt-in extras (installed via `uv sync --extra <name>`);
@@ -51,7 +58,7 @@ each maps to a lazily-imported adapter, so the package stays importable without 
 `finetune-local` (transformers/peft/trl/torch).
 
 Deeper docs live in `docs/`: `architecture.md`, `configuration.md`, `deployment.md`,
-and `compliance/`.
+`operations.md` (backup/restore, key rotation, incident response), and `compliance/`.
 
 ## Architecture (the big picture)
 
@@ -88,7 +95,9 @@ api (FastAPI routers) → services → ports (Protocol) ← adapters (Mistral/Qd
 
 ### Reversible PII vault (`services` integration, `ports/vault.py`)
 
-`PIIVaultPort` (`InMemoryPIIVault`: deterministic per-tenant tokens, Fernet-encrypted values). Gated by
+`PIIVaultPort` (`InMemoryPIIVault` or shared `PostgresPIIVault` for HA, via `SRAG_PII_VAULT_PROVIDER`):
+deterministic per-tenant tokens, Fernet-encrypted values (key derived with PBKDF2-HMAC-SHA256, shared
+crypto in `adapters/vault_crypto.py`). Gated by
 `SRAG_PII_VAULT_ON_INGEST` (default off): when on, `IngestionService` tokenizes PII instead of
 destructively masking, and `RAGService` detokenizes the answer + citations for the authorized principal
 (audited). Also exposed as `/pii/tokenize` (perm `ingest`) and `/pii/detokenize` (perm `manage`), both

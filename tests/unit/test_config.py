@@ -6,6 +6,7 @@ from sovereign_rag.config import (
     AuthProvider,
     EmbeddingProvider,
     LLMProvider,
+    PIIVaultProvider,
     Settings,
 )
 
@@ -43,6 +44,11 @@ def test_settings_vault_requires_strong_secret():
 def test_settings_postgres_audit_without_dsn_is_rejected():
     with pytest.raises(ValidationError):
         Settings(_env_file=None, audit_provider=AuditProvider.POSTGRES, audit_dsn="")
+
+
+def test_settings_postgres_vault_without_dsn_is_rejected():
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, pii_vault_provider=PIIVaultProvider.POSTGRES, pii_vault_dsn="")
 
 
 def test_settings_oidc_without_audience_is_rejected():

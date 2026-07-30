@@ -1,18 +1,14 @@
 from __future__ import annotations
 
-import base64
-import hashlib
-import hmac
 import re
 from typing import TYPE_CHECKING
 
+from sovereign_rag.adapters.vault_crypto import TOKEN_RE, build_cipher, derive_token
 from sovereign_rag.compliance import pii
 from sovereign_rag.domain.models import PIIToken, TokenizationResult
 
 if TYPE_CHECKING:
     from cryptography.fernet import Fernet
-
-_TOKEN_RE = re.compile(r"\[\[PII:[A-Z_]+:[0-9a-f]+\]\]")
 
 
 class InMemoryPIIVault:
@@ -23,8 +19,9 @@ class InMemoryPIIVault:
     for the owning tenant. Defaults are sovereign and dependency-light.
     """
 
-    def __init__(self, secret: str) -> None:
+    def __init__(self, secret: str, salt: str = "sovereign-rag-pii-vault") -> None:
         self._secret = secret.encode("utf-8")
+        self._salt = salt.encode("utf-8")
         self._store: dict[tuple[str, str], bytes] = {}
         self._cipher: Fernet | None = None
 
@@ -47,7 +44,7 @@ class InMemoryPIIVault:
         def _replace(match: re.Match[str]) -> str:
             return self.resolve(match.group(0), tenant_id) or match.group(0)
 
-        return _TOKEN_RE.sub(_replace, text)
+        return TOKEN_RE.sub(_replace, text)
 
     def resolve(self, token: str, tenant_id: str) -> str | None:
         ciphertext = self._store.get((tenant_id, token))
@@ -56,17 +53,11 @@ class InMemoryPIIVault:
         return self._decrypt(ciphertext)
 
     def _token(self, tenant_id: str, entity_type: str, value: str) -> str:
-        digest = hmac.new(
-            self._secret, f"{tenant_id}:{entity_type}:{value}".encode(), hashlib.sha256
-        ).hexdigest()[:16]
-        return f"[[PII:{entity_type}:{digest}]]"
+        return derive_token(self._secret, tenant_id, entity_type, value)
 
     def _fernet(self) -> Fernet:
         if self._cipher is None:
-            from cryptography.fernet import Fernet
-
-            key = base64.urlsafe_b64encode(hashlib.sha256(self._secret).digest())
-            self._cipher = Fernet(key)
+            self._cipher = build_cipher(self._secret, self._salt)
         return self._cipher
 
     def _encrypt(self, value: str) -> bytes:

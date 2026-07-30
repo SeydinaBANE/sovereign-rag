@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
@@ -56,6 +55,8 @@ class PostgresAuditLog:
         tenant_id: str = "default",
         subject: str = "system",
     ) -> AuditRecord:
+        from psycopg.types.json import Json
+
         timestamp = datetime.now(UTC).isoformat()
         with self._open() as conn:
             conn.execute("SELECT pg_advisory_xact_lock(%s)", (_CHAIN_LOCK_KEY,))
@@ -78,7 +79,7 @@ class PostgresAuditLog:
                 (
                     timestamp,
                     query_hash,
-                    json.dumps(sources),
+                    Json(sources),
                     region,
                     tenant_id,
                     subject,

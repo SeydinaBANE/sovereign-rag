@@ -20,7 +20,7 @@ Each non-default provider needs its extra installed (`uv sync --extra <name>` or
 | `observability` | Langfuse / OpenTelemetry tracing |
 | `auth-oidc` | JWT/OIDC authentication |
 | `pii-vault` | reversible PII vault (encryption) |
-| `audit-postgres` | shared Postgres audit log (multi-replica HA) |
+| `audit-postgres` | shared Postgres audit log + PII vault (multi-replica HA) |
 | `finetune-local` | on-prem LoRA/PEFT fine-tuning |
 
 ## LLM
@@ -119,7 +119,10 @@ All API responses also carry baseline security headers (`X-Content-Type-Options`
 | `SRAG_DEFAULT_REGION` | `eu-west` | |
 | `SRAG_PII_POLICY` | `mask` | `mask` \| `refuse` \| `allow` |
 | `SRAG_PII_VAULT_ON_INGEST` | `false` | tokenize (reversible) instead of masking |
-| `SRAG_PII_VAULT_SECRET` | – | derives the encryption key; ≥ 32 chars required when the vault is on |
+| `SRAG_PII_VAULT_PROVIDER` | `memory` | `memory` (node-local) \| `postgres` (shared, multi-replica HA) |
+| `SRAG_PII_VAULT_SECRET` | – | derives the Fernet key (PBKDF2-HMAC-SHA256); ≥ 32 chars required when the vault is on |
+| `SRAG_PII_VAULT_SALT` | `sovereign-rag-pii-vault` | KDF salt; rotating it invalidates existing ciphertext |
+| `SRAG_PII_VAULT_DSN` | – | required when `SRAG_PII_VAULT_PROVIDER=postgres` |
 | `SRAG_AUDIT_PROVIDER` | `file` | `file` (node-local) \| `postgres` (shared, multi-replica HA) |
 | `SRAG_AUDIT_PATH` | `data/audit/audit.log` | hash-chained audit log (`file` provider) |
 | `SRAG_AUDIT_DSN` | – | required when `SRAG_AUDIT_PROVIDER=postgres` |
